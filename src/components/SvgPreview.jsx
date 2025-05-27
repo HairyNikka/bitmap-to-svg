@@ -19,12 +19,28 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
   const svgRenderTimeout = useRef(null);
 
   const wrapperSize = 500;
+  const border = 100;
 
-  const handleGenerate = () => {
-    if (!imageSrc) return;
-
+  const resetView = () => {
     setZoom(1);
     setPosition({ x: 0, y: 0 });
+  };
+
+  const clampPosition = (x, y) => {
+    const imageSize = wrapperSize * zoom;
+    const minX = wrapperSize - imageSize - border;
+    const maxX = border;
+    const minY = wrapperSize - imageSize - border;
+    const maxY = border;
+    return {
+      x: Math.max(minX, Math.min(x, maxX)),
+      y: Math.max(minY, Math.min(y, maxY)),
+    };
+  };
+
+  const handleGenerate = () => {
+    resetView();
+    if (!imageSrc) return;
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -96,7 +112,11 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
     const handleWheel = (e) => {
       e.preventDefault();
       const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      setZoom(z => Math.max(0.2, Math.min(z + delta, 5)));
+      setZoom(z => {
+        const newZoom = Math.max(0.2, Math.min(z + delta, 5));
+        setPosition(pos => clampPosition(pos.x, pos.y));
+        return newZoom;
+      });
       triggerSvgDelay();
     };
 
@@ -110,7 +130,7 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
       const dx = e.clientX - lastPos.current.x;
       const dy = e.clientY - lastPos.current.y;
       lastPos.current = { x: e.clientX, y: e.clientY };
-      setPosition(pos => ({ x: pos.x + dx, y: pos.y + dy }));
+      setPosition(pos => clampPosition(pos.x + dx, pos.y + dy));
       triggerSvgDelay();
     };
 
@@ -130,12 +150,17 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, []);
+  }, [zoom]);
 
   const wrapperStyle = {
-    width: '500px',
-    height: '500px',
-    background: '#fff',
+    width: `${wrapperSize}px`,
+    height: `${wrapperSize}px`,
+    backgroundImage: `
+      linear-gradient(to right, #eee 1px, transparent 1px),
+      linear-gradient(to bottom, #eee 1px, transparent 1px)
+    `,
+    backgroundSize: '20px 20px',
+    backgroundColor: '#fff',
     border: '1px solid #ccc',
     position: 'relative',
     overflow: 'hidden',
@@ -149,19 +174,18 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
     height: '100%',
     pointerEvents: 'none',
     display: 'block',
+    objectFit: 'contain',
     transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
     transformOrigin: '0 0'
   };
 
-  const imageStyle = {
-    ...layerStyle,
-    objectFit: 'contain'
-  };
-
   return (
     <div>
-      <button onClick={handleGenerate} style={{ marginBottom: '10px' }}>
+      <button onClick={handleGenerate} style={{ marginBottom: '10px', marginRight: '10px' }}>
         🔄 แปลงใหม่
+      </button>
+      <button onClick={resetView} style={{ marginBottom: '10px' }}>
+        ♻️ รีเซ็ตมุมมอง
       </button>
 
       {imageSrc && (
@@ -169,7 +193,7 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
           <div>
             <h4>🖼️ ต้นฉบับ</h4>
             <div style={wrapperStyle}>
-              <img ref={imageRef} src={imageSrc} alt="Original" style={imageStyle} />
+              <img ref={imageRef} src={imageSrc} alt="Original" style={layerStyle} />
             </div>
           </div>
 
