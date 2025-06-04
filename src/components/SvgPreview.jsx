@@ -68,13 +68,14 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
 
       const result = ImageTracer.imagedataToSVG(imageData, finalOptions);
 
+      // 🛠️ เปลี่ยนเฉพาะ viewBox, preserveAspectRatio (ไม่ใส่ width/height)
       const parser = new DOMParser();
       const doc = parser.parseFromString(result, "image/svg+xml");
       const svgEl = doc.querySelector("svg");
       svgEl.setAttribute("viewBox", `0 0 ${canvas.width} ${canvas.height}`);
       svgEl.setAttribute("preserveAspectRatio", "xMidYMid meet");
-      svgEl.setAttribute("width", "100%");
-      svgEl.setAttribute("height", "100%");
+      svgEl.setAttribute("width", "500");  // ✅ กำหนดขนาดแสดงผล SVG เท่ากับ wrapper
+      svgEl.setAttribute("height", "500");
       const serializer = new XMLSerializer();
       const updatedSVG = serializer.serializeToString(doc.documentElement);
 
@@ -83,6 +84,7 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
       setShowSvg(true);
     };
   };
+
 
   useEffect(() => {
     const renderCanvas = async () => {
@@ -204,7 +206,14 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
               {showSvg && (
                 <div
                   ref={svgRef}
-                  style={{ ...layerStyle, visibility: svgReady ? 'visible' : 'hidden' }}
+                  style={{
+                    ...layerStyle,
+                    visibility: svgReady ? 'visible' : 'hidden',
+                    width: `${wrapperSize}px`,
+                    height: `${wrapperSize}px`,
+                    transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+                    transformOrigin: '0 0'
+                  }}
                   dangerouslySetInnerHTML={{ __html: svg }}
                 />
               )}
