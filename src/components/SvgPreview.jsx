@@ -1,4 +1,4 @@
-
+// อัปเดต SvgPreview.jsx ให้รองรับ download PNG/PDF และ sync zoom/position เต็มรูปแบบ
 import React, { useEffect, useRef, useState } from 'react';
 import ImageTracer from 'imagetracerjs';
 import { Canvg } from 'canvg';
@@ -18,6 +18,7 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
   const lastPos = useRef({ x: 0, y: 0 });
   const svgRenderTimeout = useRef(null);
 
+  const naturalSize = useRef({ width: 0, height: 0 });
   const wrapperSize = 500;
   const border = 100;
 
@@ -49,6 +50,7 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
     img.onload = () => {
       const naturalWidth = img.naturalWidth;
       const naturalHeight = img.naturalHeight;
+      naturalSize.current = { width: naturalWidth, height: naturalHeight };
 
       const canvas = document.createElement('canvas');
       canvas.width = naturalWidth;
@@ -68,14 +70,15 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
 
       const result = ImageTracer.imagedataToSVG(imageData, finalOptions);
 
-      // 🛠️ เปลี่ยนเฉพาะ viewBox, preserveAspectRatio (ไม่ใส่ width/height)
       const parser = new DOMParser();
       const doc = parser.parseFromString(result, "image/svg+xml");
       const svgEl = doc.querySelector("svg");
       svgEl.setAttribute("viewBox", `0 0 ${canvas.width} ${canvas.height}`);
       svgEl.setAttribute("preserveAspectRatio", "xMidYMid meet");
-      svgEl.setAttribute("width", "500");  // ✅ กำหนดขนาดแสดงผล SVG เท่ากับ wrapper
-      svgEl.setAttribute("height", "500");
+      svgEl.setAttribute("width", "100%");
+      svgEl.setAttribute("height", "100%");
+      svgEl.setAttribute("style", "width:100%; height:100%; display:block;");
+
       const serializer = new XMLSerializer();
       const updatedSVG = serializer.serializeToString(doc.documentElement);
 
@@ -85,26 +88,44 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
     };
   };
 
+  const downloadPNG = async () => {
+    const { width, height } = naturalSize.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    const v = await Canvg.fromString(ctx, svg);
+    await v.render();
+    const pngUrl = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.download = "converted.png";
+    link.href = pngUrl;
+    link.click();
+  };
 
-  useEffect(() => {
-    const renderCanvas = async () => {
-      if (!svg || !canvasRef.current) return;
-      const ctx = canvasRef.current.getContext('2d');
-      const v = await Canvg.fromString(ctx, svg);
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-      await v.render();
-    };
-    renderCanvas();
-  }, [svg]);
+  const downloadPDF = async () => {
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
 
-  const triggerSvgDelay = () => {
-    setShowSvg(false);
-    setSvgReady(false);
-    clearTimeout(svgRenderTimeout.current);
-    svgRenderTimeout.current = setTimeout(() => {
-      setShowSvg(true);
-      setSvgReady(true);
-    }, 300);
+    const res = await fetch("http://localhost:8000/convert-pdf/", {
+      method: "POST",
+      body: blob,
+      headers: {
+        'Content-Type': 'image/svg+xml'
+      }
+    });
+
+    if (!res.ok) {
+      alert("PDF export failed");
+      return;
+    }
+
+    const pdfBlob = await res.blob();
+    const url = URL.createObjectURL(pdfBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "converted.pdf";
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   useEffect(() => {
@@ -154,6 +175,28 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
     };
   }, [zoom]);
 
+  const renderCanvas = async () => {
+    if (!svg || !canvasRef.current) return;
+    const ctx = canvasRef.current.getContext('2d');
+    const v = await Canvg.fromString(ctx, svg);
+    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    await v.render();
+  };
+
+  const triggerSvgDelay = () => {
+    setShowSvg(false);
+    setSvgReady(false);
+    clearTimeout(svgRenderTimeout.current);
+    svgRenderTimeout.current = setTimeout(() => {
+      setShowSvg(true);
+      setSvgReady(true);
+    }, 300);
+  };
+
+  useEffect(() => {
+    renderCanvas();
+  }, [svg]);
+
   const wrapperStyle = {
     width: `${wrapperSize}px`,
     height: `${wrapperSize}px`,
@@ -183,12 +226,8 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
 
   return (
     <div>
-      <button onClick={handleGenerate} style={{ marginBottom: '10px', marginRight: '10px' }}>
-        🔄 แปลงใหม่
-      </button>
-      <button onClick={resetView} style={{ marginBottom: '10px' }}>
-        ♻️ รีเซ็ตมุมมอง
-      </button>
+      <button onClick={handleGenerate} style={{ marginBottom: '10px', marginRight: '10px' }}>🔄 แปลงใหม่</button>
+      <button onClick={resetView} style={{ marginBottom: '10px' }}>♻️ รีเซ็ตมุมมอง</button>
 
       {imageSrc && (
         <div ref={containerRef} style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
@@ -209,23 +248,52 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
                   style={{
                     ...layerStyle,
                     visibility: svgReady ? 'visible' : 'hidden',
-                    width: `${wrapperSize}px`,
-                    height: `${wrapperSize}px`,
-                    transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
-                    transformOrigin: '0 0'
+                    overflow: 'hidden'
                   }}
                   dangerouslySetInnerHTML={{ __html: svg }}
                 />
               )}
             </div>
             {svg && svg.includes('<path') && (
-              <a
-                href={`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`}
-                download="converted.svg"
-                style={{ display: 'inline-block', marginTop: '10px', color: 'blue' }}
-              >
-                ⬇️ Download SVG
-              </a>
+              <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+                <a
+                  href={`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`}
+                  download="converted.svg"
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#4A90E2',
+                    color: 'white',
+                    borderRadius: '6px',
+                    textDecoration: 'none'
+                  }}
+                >
+                  ⬇️ SVG
+                </a>
+                <button
+                  onClick={downloadPDF}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#4A90E2',
+                    color: 'white',
+                    borderRadius: '6px',
+                    border: 'none'
+                  }}
+                >
+                  ⬇️ PDF
+                </button>
+                <button
+                  onClick={downloadPNG}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#4A90E2',
+                    color: 'white',
+                    borderRadius: '6px',
+                    border: 'none'
+                  }}
+                >
+                  ⬇️ PNG
+                </button>
+              </div>
             )}
           </div>
         </div>

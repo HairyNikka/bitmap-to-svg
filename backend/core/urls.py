@@ -16,8 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+from .views import svg_to_pdf
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('accounts.urls')),  
+    path('api/', include('accounts.urls')),
+    path('convert-pdf/', svg_to_pdf),  
 ]

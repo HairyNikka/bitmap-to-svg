@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"cd backend && python manage.py runserver\"",
-    "dev-old": "vite",
+    "dev": "concurrently \"vite\" \"npm run dev-django\"",
+    "dev-django": ".\\env\\Scripts\\python.exe backend\\manage.py runserver",
+    "dev-react": "vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -14,6 +15,7 @@
     "axios": "^1.9.0",
     "canvg": "^4.0.3",
     "imagetracerjs": "^1.2.6",
+    "jspdf": "^3.0.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.1"
