@@ -81,7 +81,10 @@ PDF export ฝั่ง backend ต้องติดตั้ง library เพ
 #### ✅ ติดตั้ง GTK Runtime (เพื่อให้ `cairosvg` ใช้งานได้)
 
 1. ดาวน์โหลด GTK Runtime สำหรับ Windows 64-bit:
-   👉 [https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases/download/2022-01-04/gtk3-runtime-3.24.31-2022-01-04-ts-win64.exe](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases/download/2023-09-09/gtk3-runtime-3.24.38-2023-09-09-ts-win64.exe)
+   👉 [https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases/tag/2022-01-04](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases/tag/2022-01-04)
+
+   (กดโหลดตรง gtk3-runtime-3.24.31-2022-01-04-ts-win64.exe ที่มีขนาด 46.7 MB)
+
 
 2. ติดตั้งตามขั้นตอน แล้ว **ติ๊ก “Add to PATH” ตอนติดตั้ง**
 3. ปิดแล้วเปิด CMD ใหม่ แล้วทดสอบ:
