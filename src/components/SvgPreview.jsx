@@ -286,7 +286,7 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
                   download="converted.svg"
                   style={{
                     padding: '6px 12px',
-                    backgroundColor: '#4A90E2',
+                    backgroundColor: '#595959',
                     color: 'white',
                     borderRadius: '6px',
                     textDecoration: 'none'
@@ -294,9 +294,9 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
                 >
                   ⬇️ SVG
                 </a>
-                <button onClick={downloadPDF} style={{ padding: '6px 12px', backgroundColor: '#4A90E2', color: 'white', borderRadius: '6px', border: 'none' }}>⬇️ PDF</button>
-                <button onClick={downloadPNG} style={{ padding: '6px 12px', backgroundColor: '#4A90E2', color: 'white', borderRadius: '6px', border: 'none' }}>⬇️ PNG</button>
-                <button onClick={downloadEPS} style={{ padding: '6px 12px', backgroundColor: '#4A90E2', color: 'white', borderRadius: '6px', border: 'none' }}>⬇️ EPS</button>
+                <button onClick={downloadPDF} style={{ padding: '6px 12px', backgroundColor: '#595959', color: 'white', borderRadius: '6px', border: 'none' }}>⬇️ PDF</button>
+                <button onClick={downloadPNG} style={{ padding: '6px 12px', backgroundColor: '#595959', color: 'white', borderRadius: '6px', border: 'none' }}>⬇️ PNG</button>
+                <button onClick={downloadEPS} style={{ padding: '6px 12px', backgroundColor: '#595959', color: 'white', borderRadius: '6px', border: 'none' }}>⬇️ EPS</button>
               </div>
             )}
           </div>
