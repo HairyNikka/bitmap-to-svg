@@ -11,3 +11,13 @@ def svg_to_pdf(request):
         response['Content-Disposition'] = 'attachment; filename="converted.pdf"'
         return response
     return HttpResponse("Only POST allowed", status=405)
+
+@csrf_exempt
+def svg_to_eps(request):
+    if request.method == 'POST':
+        svg_data = request.body
+        eps_bytes = cairosvg.svg2eps(bytestring=svg_data)
+        response = HttpResponse(eps_bytes, content_type='application/postscript')
+        response['Content-Disposition'] = 'attachment; filename="converted.eps"'
+        return response
+    return HttpResponse("Only POST allowed", status=405)

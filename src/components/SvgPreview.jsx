@@ -1,4 +1,4 @@
-// อัปเดต SvgPreview.jsx ให้รองรับ download PNG/PDF และ sync zoom/position เต็มรูปแบบ
+// อัปเดต SvgPreview.jsx ให้รองรับ download PNG/PDF/EPS และ sync zoom/position เต็มรูปแบบ
 import React, { useEffect, useRef, useState } from 'react';
 import ImageTracer from 'imagetracerjs';
 import { Canvg } from 'canvg';
@@ -124,6 +124,31 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
     const link = document.createElement("a");
     link.href = url;
     link.download = "converted.pdf";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadEPS = async () => {
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+
+    const res = await fetch("http://localhost:8000/convert-eps/", {
+      method: "POST",
+      body: blob,
+      headers: {
+        'Content-Type': 'image/svg+xml'
+      }
+    });
+
+    if (!res.ok) {
+      alert("EPS export failed");
+      return;
+    }
+
+    const epsBlob = await res.blob();
+    const url = URL.createObjectURL(epsBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "converted.eps";
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -269,30 +294,9 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
                 >
                   ⬇️ SVG
                 </a>
-                <button
-                  onClick={downloadPDF}
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: '#4A90E2',
-                    color: 'white',
-                    borderRadius: '6px',
-                    border: 'none'
-                  }}
-                >
-                  ⬇️ PDF
-                </button>
-                <button
-                  onClick={downloadPNG}
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: '#4A90E2',
-                    color: 'white',
-                    borderRadius: '6px',
-                    border: 'none'
-                  }}
-                >
-                  ⬇️ PNG
-                </button>
+                <button onClick={downloadPDF} style={{ padding: '6px 12px', backgroundColor: '#4A90E2', color: 'white', borderRadius: '6px', border: 'none' }}>⬇️ PDF</button>
+                <button onClick={downloadPNG} style={{ padding: '6px 12px', backgroundColor: '#4A90E2', color: 'white', borderRadius: '6px', border: 'none' }}>⬇️ PNG</button>
+                <button onClick={downloadEPS} style={{ padding: '6px 12px', backgroundColor: '#4A90E2', color: 'white', borderRadius: '6px', border: 'none' }}>⬇️ EPS</button>
               </div>
             )}
           </div>
