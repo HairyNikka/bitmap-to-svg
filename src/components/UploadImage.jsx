@@ -44,12 +44,12 @@ export default function UploadImage({ setSvgData, setImageSrc, setOptions }) {
   };
 
   return (
-    <div style={{ marginBottom: '10px' }}>
+    <div style={{ marginBottom: '10px', maxWidth: '100%', width: '100%' }}>
       <input type="file" accept="image/*" onChange={handleChange} />
 
-      <div style={{ marginTop: '10px' }}>
+      <div style={{ marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
         {Object.keys(optionLabels).map((key) => (
-          <div key={key} style={{ marginBottom: '8px' }}>
+          <div key={key} style={{ minWidth: '250px', flex: '1' }}>
             <label htmlFor={key}>
               {optionLabels[key]}: {localOptions[key]}
             </label>
@@ -67,14 +67,15 @@ export default function UploadImage({ setSvgData, setImageSrc, setOptions }) {
               step={key === 'blur' ? 0.1 : key === 'strokewidth' ? 0.5 : 1}
               value={localOptions[key]}
               onChange={handleOptionChange}
-              style={{ width: '250px' }}
+              style={{ width: '100%' }}
             />
           </div>
         ))}
-        <button onClick={handleReset} style={{ marginTop: '10px' }}>
-          ♻️ รีเซ็ตค่า
-        </button>
       </div>
+
+      <button onClick={handleReset} style={{ marginTop: '10px' }}>
+        ♻️ รีเซ็ตค่า
+      </button>
     </div>
   );
 }

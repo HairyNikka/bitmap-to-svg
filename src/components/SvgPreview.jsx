@@ -1,9 +1,9 @@
-// อัปเดต SvgPreview.jsx ให้รองรับ download PNG/PDF/EPS และ sync zoom/position เต็มรูปแบบ
-import React, { useEffect, useRef, useState } from 'react';
+// ✅ ปรับ SvgPreview: ลดช่องว่างระหว่างต้นฉบับกับแปลงแล้ว (จาก 40px → 10px) โดยไม่พังระบบเดิม
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import ImageTracer from 'imagetracerjs';
 import { Canvg } from 'canvg';
 
-export default function SvgPreview({ imageSrc, options, setSvgData }) {
+const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
   const [svg, setSvg] = useState(null);
   const [showSvg, setShowSvg] = useState(false);
   const [svgReady, setSvgReady] = useState(false);
@@ -26,6 +26,11 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
     setZoom(1);
     setPosition({ x: 0, y: 0 });
   };
+    useEffect(() => {
+    if (imageSrc) {
+      resetView();
+    }
+  }, [imageSrc]);
 
   const clampPosition = (x, y) => {
     const imageSize = wrapperSize * zoom;
@@ -74,7 +79,6 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
       const doc = parser.parseFromString(result, "image/svg+xml");
       const svgEl = doc.querySelector("svg");
 
-      // แก้ปัญหา SVG มีขนาดใหญ่ผิดปกติ และ sync zoom ให้แสดงผลเท่ากับต้นฉบับ
       svgEl.setAttribute("viewBox", `0 0 ${canvas.width} ${canvas.height}`);
       svgEl.setAttribute("preserveAspectRatio", "xMidYMid meet");
       svgEl.setAttribute("width", `${canvas.width}`);
@@ -107,20 +111,12 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
 
   const downloadPDF = async () => {
     const blob = new Blob([svg], { type: 'image/svg+xml' });
-
     const res = await fetch("http://localhost:8000/convert-pdf/", {
       method: "POST",
       body: blob,
-      headers: {
-        'Content-Type': 'image/svg+xml'
-      }
+      headers: { 'Content-Type': 'image/svg+xml' }
     });
-
-    if (!res.ok) {
-      alert("PDF export failed");
-      return;
-    }
-
+    if (!res.ok) return alert("PDF export failed");
     const pdfBlob = await res.blob();
     const url = URL.createObjectURL(pdfBlob);
     const link = document.createElement("a");
@@ -132,20 +128,12 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
 
   const downloadEPS = async () => {
     const blob = new Blob([svg], { type: 'image/svg+xml' });
-
     const res = await fetch("http://localhost:8000/convert-eps/", {
       method: "POST",
       body: blob,
-      headers: {
-        'Content-Type': 'image/svg+xml'
-      }
+      headers: { 'Content-Type': 'image/svg+xml' }
     });
-
-    if (!res.ok) {
-      alert("EPS export failed");
-      return;
-    }
-
+    if (!res.ok) return alert("EPS export failed");
     const epsBlob = await res.blob();
     const url = URL.createObjectURL(epsBlob);
     const link = document.createElement("a");
@@ -155,10 +143,14 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
     URL.revokeObjectURL(url);
   };
 
+  useImperativeHandle(ref, () => ({
+    generate: handleGenerate,
+    reset: resetView
+  }));
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-
     const handleWheel = (e) => {
       e.preventDefault();
       const delta = e.deltaY > 0 ? -0.1 : 0.1;
@@ -169,13 +161,11 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
       });
       triggerSvgDelay();
     };
-
     const handleMouseDown = (e) => {
       dragging.current = true;
       lastPos.current = { x: e.clientX, y: e.clientY };
       container.style.cursor = 'grabbing';
     };
-
     const handleMouseMove = (e) => {
       if (!dragging.current) return;
       const dx = e.clientX - lastPos.current.x;
@@ -184,19 +174,16 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
       setPosition(pos => clampPosition(pos.x + dx, pos.y + dy));
       triggerSvgDelay();
     };
-
     const handleMouseUp = () => {
       dragging.current = false;
       container.style.cursor = 'grab';
       triggerSvgDelay();
     };
-
     container.style.cursor = 'grab';
     container.addEventListener('wheel', handleWheel, { passive: false });
     container.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
-
     return () => {
       container.removeEventListener('wheel', handleWheel);
       container.removeEventListener('mousedown', handleMouseDown);
@@ -256,12 +243,18 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
   };
 
   return (
-    <div>
-      <button onClick={handleGenerate} style={{ marginBottom: '10px', marginRight: '10px' }}>🔄 แปลงใหม่</button>
-      <button onClick={resetView} style={{ marginBottom: '10px' }}>♻️ รีเซ็ตมุมมอง</button>
-
+    <div style={{ paddingTop: '70px' }}>
       {imageSrc && (
-        <div ref={containerRef} style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+        <div
+          ref={containerRef}
+          style={{
+            display: 'flex',
+            gap: '10px',
+            flexWrap: 'nowrap',
+            justifyContent: 'center',
+            alignItems: 'flex-start'
+          }}
+        >
           <div>
             <h4>🖼️ ต้นฉบับ</h4>
             <div style={wrapperStyle}>
@@ -310,4 +303,6 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
       )}
     </div>
   );
-}
+});
+
+export default SvgPreview;

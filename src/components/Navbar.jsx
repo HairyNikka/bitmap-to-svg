@@ -1,4 +1,4 @@
-// --- src/components/Navbar.jsx ---
+// ✅ Navbar ใช้ fixed ให้อยู่ติดด้านบนเสมอ พร้อม paddingTop ในเนื้อหาอื่นรองรับ
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -29,23 +29,27 @@ export default function Navbar() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     setUsername(null);
+    navigate("/login");
   };
 
   const styleNavbar = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    background: "#222",        
-    color: "#fff",             
+    background: "#222",
+    color: "#fff",
     padding: "10px 20px",
-    position: "sticky",
+    position: "fixed", // จาก sticky → fixed
     top: 0,
+    left: 0,
+    width: '100%',
+    boxSizing: 'border-box',
     zIndex: 1000,
   };
 
   return (
     <div style={styleNavbar}>
-      <h3>🔁 แปลงภาพ</h3>
+      <h3 style={{ margin: 0 }}>🔁 แปลงภาพ</h3>
 
       <div>
         {username ? (

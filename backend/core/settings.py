@@ -125,7 +125,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024 
+DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024 
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
