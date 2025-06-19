@@ -73,11 +73,13 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(result, "image/svg+xml");
       const svgEl = doc.querySelector("svg");
+
+      // แก้ปัญหา SVG มีขนาดใหญ่ผิดปกติ และ sync zoom ให้แสดงผลเท่ากับต้นฉบับ
       svgEl.setAttribute("viewBox", `0 0 ${canvas.width} ${canvas.height}`);
       svgEl.setAttribute("preserveAspectRatio", "xMidYMid meet");
-      svgEl.setAttribute("width", "100%");
-      svgEl.setAttribute("height", "100%");
-      svgEl.setAttribute("style", "width:100%; height:100%; display:block;");
+      svgEl.setAttribute("width", `${canvas.width}`);
+      svgEl.setAttribute("height", `${canvas.height}`);
+      svgEl.setAttribute("style", "width: 100%; height: 100%; display: block;");
 
       const serializer = new XMLSerializer();
       const updatedSVG = serializer.serializeToString(doc.documentElement);
@@ -171,6 +173,7 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
     const handleMouseDown = (e) => {
       dragging.current = true;
       lastPos.current = { x: e.clientX, y: e.clientY };
+      container.style.cursor = 'grabbing';
     };
 
     const handleMouseMove = (e) => {
@@ -184,9 +187,11 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
 
     const handleMouseUp = () => {
       dragging.current = false;
+      container.style.cursor = 'grab';
       triggerSvgDelay();
     };
 
+    container.style.cursor = 'grab';
     container.addEventListener('wheel', handleWheel, { passive: false });
     container.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
@@ -234,6 +239,7 @@ export default function SvgPreview({ imageSrc, options, setSvgData }) {
     border: '1px solid #ccc',
     position: 'relative',
     overflow: 'hidden',
+    cursor: 'grab',
   };
 
   const layerStyle = {
