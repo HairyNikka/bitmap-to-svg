@@ -20,8 +20,7 @@ export default function Home() {
 
   return (
     <div style={{ width: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
-      <div style={{ paddingTop: '70px', fontFamily: 'Arial, sans-serif', maxWidth: '100%', width: '100%' }}>
-        <h1 style={{ margin: '20px' }}>🖼️ Bitmap to SVG Converter</h1>
+      <div style={{ paddingTop: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '100%', width: '100%' }}>
 
         <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', padding: '0 20px', flexWrap: 'wrap' }}>
 
@@ -39,9 +38,13 @@ export default function Home() {
           {/* ฝั่งขวา: กล่องควบคุม */}
           <div
             style={{
-              width: '320px',
-              height: '500px',
+              width: '300px',
+              height: '470px',
               overflowY: 'auto',
+              alignSelf: 'flex-start',
+              marginTop: '30px',
+              marginLeft: '0px',
+              marginRight: '30px',
               backgroundColor: '#1e1e1e',
               border: '1px solid #444',
               padding: '20px',
@@ -57,7 +60,7 @@ export default function Home() {
             />
 
             {/* ปุ่มจัดการ */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '30px' }}>
               <button onClick={() => svgRef.current?.generate()}>
                 🔄 แปลงใหม่
               </button>

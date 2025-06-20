@@ -1,4 +1,4 @@
-// ✅ ปรับ SvgPreview: ลดช่องว่างระหว่างต้นฉบับกับแปลงแล้ว (จาก 40px → 10px) โดยไม่พังระบบเดิม
+// ✅ SvgPreview: ปรับให้ข้อความหัวเรื่องไม่ชิดกรอบเกินไป (เพิ่ม marginBottom เล็กน้อย)
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import ImageTracer from 'imagetracerjs';
 import { Canvg } from 'canvg';
@@ -26,7 +26,8 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
     setZoom(1);
     setPosition({ x: 0, y: 0 });
   };
-    useEffect(() => {
+
+  useEffect(() => {
     if (imageSrc) {
       resetView();
     }
@@ -164,7 +165,6 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
     const handleMouseDown = (e) => {
       dragging.current = true;
       lastPos.current = { x: e.clientX, y: e.clientY };
-      container.style.cursor = 'grabbing';
     };
     const handleMouseMove = (e) => {
       if (!dragging.current) return;
@@ -176,10 +176,8 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
     };
     const handleMouseUp = () => {
       dragging.current = false;
-      container.style.cursor = 'grab';
       triggerSvgDelay();
     };
-    container.style.cursor = 'grab';
     container.addEventListener('wheel', handleWheel, { passive: false });
     container.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
@@ -226,7 +224,7 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
     border: '1px solid #ccc',
     position: 'relative',
     overflow: 'hidden',
-    cursor: 'grab',
+    cursor: 'grab'
   };
 
   const layerStyle = {
@@ -243,7 +241,7 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
   };
 
   return (
-    <div style={{ paddingTop: '70px' }}>
+    <div style={{ marginTop: '4px' }}>
       {imageSrc && (
         <div
           ref={containerRef}
@@ -255,15 +253,15 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
             alignItems: 'flex-start'
           }}
         >
-          <div>
-            <h4>🖼️ ต้นฉบับ</h4>
+          <div style={{ alignSelf: 'flex-start' }}>
+            <h4 style={{ margin: 0, marginBottom: 6 }}>🖼️ ต้นฉบับ</h4>
             <div style={wrapperStyle}>
               <img ref={imageRef} src={imageSrc} alt="Original" style={layerStyle} />
             </div>
           </div>
 
-          <div>
-            <h4>🎨 แปลงแล้ว</h4>
+          <div style={{ alignSelf: 'flex-start' }}>
+            <h4 style={{ margin: 0, marginBottom: 6 }}>🎨 แปลงแล้ว</h4>
             <div style={wrapperStyle}>
               <canvas ref={canvasRef} width={500} height={500} style={layerStyle} />
               {showSvg && (

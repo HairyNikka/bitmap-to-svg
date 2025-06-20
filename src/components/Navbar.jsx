@@ -29,7 +29,6 @@ export default function Navbar() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     setUsername(null);
-    navigate("/login");
   };
 
   const styleNavbar = {
@@ -49,8 +48,7 @@ export default function Navbar() {
 
   return (
     <div style={styleNavbar}>
-      <h3 style={{ margin: 0 }}>🔁 แปลงภาพ</h3>
-
+      <h3 style={{ margin: 0 }}>🖼️ Bitmap to SVG Converter</h3>
       <div>
         {username ? (
           <>
