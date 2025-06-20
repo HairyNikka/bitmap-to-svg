@@ -1,6 +1,7 @@
+// ✅ UploadImage: รองรับ resetTrigger เพื่อ sync localOptions เมื่อ reset จริง
 import React, { useState, useEffect } from 'react';
 
-export default function UploadImage({ setSvgData, setImageSrc, setOptions }) {
+export default function UploadImage({ setSvgData, setImageSrc, setOptions, imageSrc, options, resetTrigger }) {
   const defaultOptions = {
     pathomit: 1,
     numberofcolors: 8,
@@ -13,6 +14,13 @@ export default function UploadImage({ setSvgData, setImageSrc, setOptions }) {
   useEffect(() => {
     setOptions(localOptions);
   }, [localOptions, setOptions]);
+
+  // ✅ sync options → localOptions เมื่อ resetTrigger เปลี่ยน
+  useEffect(() => {
+    if (options && Object.keys(options).length > 0) {
+      setLocalOptions(options);
+    }
+  }, [resetTrigger]);
 
   const handleChange = (e) => {
     const file = e.target.files[0];
@@ -30,12 +38,6 @@ export default function UploadImage({ setSvgData, setImageSrc, setOptions }) {
     }));
   };
 
-  const handleReset = () => {
-    setLocalOptions(defaultOptions);
-    setSvgData(null);
-    setImageSrc(null);
-  };
-
   const optionLabels = {
     pathomit: "ละเส้นเล็ก (Path omit)",
     numberofcolors: "จำนวนสี (Number of colors)",
@@ -51,7 +53,7 @@ export default function UploadImage({ setSvgData, setImageSrc, setOptions }) {
         {Object.keys(optionLabels).map((key) => (
           <div key={key} style={{ minWidth: '250px', flex: '1' }}>
             <label htmlFor={key}>
-              {optionLabels[key]}: {localOptions[key]}
+              {optionLabels[key]}: {localOptions[key] ?? 0}
             </label>
             <br />
             <input
@@ -65,17 +67,21 @@ export default function UploadImage({ setSvgData, setImageSrc, setOptions }) {
                 key === 'blur' ? 5 : 20
               }
               step={key === 'blur' ? 0.1 : key === 'strokewidth' ? 0.5 : 1}
-              value={localOptions[key]}
+              value={localOptions[key] ?? 0}
               onChange={handleOptionChange}
               style={{ width: '100%' }}
             />
           </div>
         ))}
       </div>
-
-      <button onClick={handleReset} style={{ marginTop: '10px' }}>
-        ♻️ รีเซ็ตค่า
-      </button>
     </div>
   );
 }
+
+// ✅ export ค่าเริ่มต้นสำหรับ reset จาก Home
+export const defaultOptions = {
+  pathomit: 1,
+  numberofcolors: 8,
+  strokewidth: 1,
+  blur: 0
+};

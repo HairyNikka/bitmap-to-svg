@@ -1,22 +1,29 @@
 // 🔄 Home.jsx ปรับกล่องฝั่งขวาให้ความสูงเท่ากับกล่องแสดงผลภาพ และความกว้างเล็กลง
-// ✅ เพิ่มภาพโปร่งใสเป็นค่า default ของ imageSrc
+// ✅ เพิ่ม resetTrigger เพื่อบังคับให้ UploadImage sync UI slider
 import React, { useState, useRef } from 'react';
-import UploadImage from './UploadImage';
+import UploadImage, { defaultOptions } from './UploadImage';
 import SvgPreview from './SvgPreview';
 
 export default function Home() {
   const [svgData, setSvgData] = useState(null);
   const [imageSrc, setImageSrc] = useState("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAVUlEQVR42mNgGAWjYBSMAgMDwz8GMJvBBRC8Z8BiMDQyQDxHIxYhwgVAF+Q/GfCVAAck6AhVwAxY2A1WQnEI8QvGQbEQK6RmW0UCQQMAM4USMhhCEZQAAAAASUVORK5CYII=");
   const [options, setOptions] = useState({
-    pathomit: 8,
+    pathomit: 1,
     numberofcolors: 8,
     strokewidth: 1,
     scale: 1,
     blur: 0
   });
   const [monoMode, setMonoMode] = useState(false);
+  const [resetTrigger, setResetTrigger] = useState(0); // ✅ trigger เพิ่ม
 
   const svgRef = useRef();
+
+  const resetOptionsOnly = () => {
+    setOptions({ ...defaultOptions });
+    setResetTrigger(prev => prev + 1); // ✅ เปลี่ยน trigger เพื่อบังคับอัปเดต
+    setSvgData(null); // ล้างผลลัพธ์เดิม แต่ไม่ลบภาพ
+  };
 
   return (
     <div style={{ width: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
@@ -57,6 +64,9 @@ export default function Home() {
               setImageSrc={setImageSrc}
               setOptions={setOptions}
               setMonoMode={setMonoMode}
+              imageSrc={imageSrc}
+              options={options}
+              resetTrigger={resetTrigger} // ✅ ส่งเข้าไป
             />
 
             {/* ปุ่มจัดการ */}
@@ -66,6 +76,9 @@ export default function Home() {
               </button>
               <button onClick={() => svgRef.current?.reset()}>
                 ♻️ รีเซ็ตมุมมอง
+              </button>
+              <button onClick={resetOptionsOnly}>
+                ♻️ รีเซ็ตค่า (ไม่ลบรูป)
               </button>
             </div>
           </div>
