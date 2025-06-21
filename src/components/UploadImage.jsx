@@ -1,4 +1,4 @@
-// ✅ UploadImage: เปลี่ยนเป็นไอคอน svg รูปภาพ + ปรับความสูงกล่อง drag drop ให้พอดีกับข้อความ
+// ✅ UploadImage: ปรับขนาดปุ่ม Preset ให้เท่ากัน และขนาดตัวอักษรพอดีบรรทัดเดียว
 import React, { useState, useEffect, useRef } from 'react';
 
 export default function UploadImage({ setSvgData, setImageSrc, setOptions, imageSrc, options, resetTrigger }) {
@@ -61,6 +61,24 @@ export default function UploadImage({ setSvgData, setImageSrc, setOptions, image
     return base + "..." + ext;
   };
 
+  const handlePreset = (level) => {
+    let newOptions;
+    switch (level) {
+      case 'ต่ำ':
+        newOptions = { ...localOptions, pathomit: 8, numberofcolors: 4, strokewidth: 1, blur: 0 };
+        break;
+      case 'ปานกลาง':
+        newOptions = { ...localOptions, pathomit: 4, numberofcolors: 8, strokewidth: 1, blur: 0 };
+        break;
+      case 'สูง':
+        newOptions = { ...localOptions, pathomit: 1, numberofcolors: 16, strokewidth: 1, blur: 0 };
+        break;
+      default:
+        return;
+    }
+    setLocalOptions(newOptions);
+  };
+
   return (
     <div style={{ marginBottom: '10px', maxWidth: '100%', width: '100%' }}>
       <div
@@ -69,15 +87,15 @@ export default function UploadImage({ setSvgData, setImageSrc, setOptions, image
         onDragOver={(e) => e.preventDefault()}
         style={{
           border: '2px dashed #888',
-          padding: '12px 16px', 
+          padding: '12px',
           textAlign: 'center',
           borderRadius: '8px',
           cursor: 'pointer',
-          marginBottom: '20px',
+          marginBottom: '12px',
           backgroundColor: '#2a2a2a',
           color: '#ccc',
           fontSize: '14px',
-          height: '48px', 
+          height: '45px',
           overflow: 'hidden',
           whiteSpace: 'nowrap',
           textOverflow: 'ellipsis',
@@ -98,10 +116,38 @@ export default function UploadImage({ setSvgData, setImageSrc, setOptions, image
         />
       </div>
 
+      <div style={{ marginBottom: '12px', textAlign: 'left', fontSize: '16px' }}>
+        <div style={{ marginBottom: '6px', fontFamily: 'inherit', fontWeight: 'normal' }}>พรีเซ็ตความละเอียด (Detail Presets):</div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+          {['ต่ำ', 'ปานกลาง', 'สูง'].map((level) => (
+            <button
+              key={level}
+              onClick={() => handlePreset(level)}
+              style={{
+                backgroundColor: '#111',
+                color: 'white',
+                border: '1px solid #555',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                width: '100px',
+                textAlign: 'center',
+                fontSize: '14px',
+                fontWeight: 'normal',
+                lineHeight: '2',
+                fontFamily: 'inherit'
+              }}
+            >
+              {level}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div style={{ marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
         {Object.keys(optionLabels).map((key) => (
           <div key={key} style={{ minWidth: '250px', flex: '1' }}>
-            <label htmlFor={key}>
+            <label htmlFor={key} style={{ fontFamily: 'inherit', fontSize: '16px', fontWeight: 'normal' }}>
               {optionLabels[key]}: {localOptions[key] ?? 0}
             </label>
             <br />
