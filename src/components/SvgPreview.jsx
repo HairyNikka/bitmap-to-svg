@@ -1,4 +1,3 @@
-// ✅ SvgPreview: ปรับให้ข้อความหัวเรื่องไม่ชิดกรอบเกินไป (เพิ่ม marginBottom เล็กน้อย)
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import ImageTracer from 'imagetracerjs';
 import { Canvg } from 'canvg';
@@ -9,14 +8,15 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
   const [svgReady, setSvgReady] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [cachedPng, setCachedPng] = useState(null);
 
-  const canvasRef = useRef(null);
   const svgRef = useRef(null);
   const imageRef = useRef(null);
   const containerRef = useRef(null);
   const dragging = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
   const svgRenderTimeout = useRef(null);
+  const moveFrame = useRef(null);
 
   const naturalSize = useRef({ width: 0, height: 0 });
   const wrapperSize = 500;
@@ -45,54 +45,14 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
     };
   };
 
-  const handleGenerate = () => {
-    resetView();
-    if (!imageSrc) return;
-
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = imageSrc;
-
-    img.onload = () => {
-      const naturalWidth = img.naturalWidth;
-      const naturalHeight = img.naturalHeight;
-      naturalSize.current = { width: naturalWidth, height: naturalHeight };
-
-      const canvas = document.createElement('canvas');
-      canvas.width = naturalWidth;
-      canvas.height = naturalHeight;
-      const ctx = canvas.getContext('2d');
-
-      if (options.blur > 0) ctx.filter = `blur(${options.blur}px)`;
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-      const finalOptions = {
-        ...options,
-        roundcoords: 1,
-        layering: 0,
-        scale: 1
-      };
-
-      const result = ImageTracer.imagedataToSVG(imageData, finalOptions);
-
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(result, "image/svg+xml");
-      const svgEl = doc.querySelector("svg");
-
-      svgEl.setAttribute("viewBox", `0 0 ${canvas.width} ${canvas.height}`);
-      svgEl.setAttribute("preserveAspectRatio", "xMidYMid meet");
-      svgEl.setAttribute("width", `${canvas.width}`);
-      svgEl.setAttribute("height", `${canvas.height}`);
-      svgEl.setAttribute("style", "width: 100%; height: 100%; display: block;");
-
-      const serializer = new XMLSerializer();
-      const updatedSVG = serializer.serializeToString(doc.documentElement);
-
-      setSvg(updatedSVG);
-      setSvgData(updatedSVG);
-      setShowSvg(true);
-    };
+  const convertSvgToPng = async (svgString) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 500;
+    canvas.height = 500;
+    const ctx = canvas.getContext('2d');
+    const v = await Canvg.fromString(ctx, svgString);
+    await v.render();
+    return canvas.toDataURL("image/png");
   };
 
   const downloadPNG = async () => {
@@ -144,58 +104,56 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
     URL.revokeObjectURL(url);
   };
 
-  useImperativeHandle(ref, () => ({
-    generate: handleGenerate,
-    reset: resetView
-  }));
+  const handleGenerate = async () => {
+    resetView();
+    if (!imageSrc) return;
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    const handleWheel = (e) => {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      setZoom(z => {
-        const newZoom = Math.max(0.2, Math.min(z + delta, 5));
-        setPosition(pos => clampPosition(pos.x, pos.y));
-        return newZoom;
-      });
-      triggerSvgDelay();
-    };
-    const handleMouseDown = (e) => {
-      dragging.current = true;
-      lastPos.current = { x: e.clientX, y: e.clientY };
-    };
-    const handleMouseMove = (e) => {
-      if (!dragging.current) return;
-      const dx = e.clientX - lastPos.current.x;
-      const dy = e.clientY - lastPos.current.y;
-      lastPos.current = { x: e.clientX, y: e.clientY };
-      setPosition(pos => clampPosition(pos.x + dx, pos.y + dy));
-      triggerSvgDelay();
-    };
-    const handleMouseUp = () => {
-      dragging.current = false;
-      triggerSvgDelay();
-    };
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    container.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      container.removeEventListener('wheel', handleWheel);
-      container.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [zoom]);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = imageSrc;
 
-  const renderCanvas = async () => {
-    if (!svg || !canvasRef.current) return;
-    const ctx = canvasRef.current.getContext('2d');
-    const v = await Canvg.fromString(ctx, svg);
-    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    await v.render();
+    img.onload = async () => {
+      const naturalWidth = img.naturalWidth;
+      const naturalHeight = img.naturalHeight;
+      naturalSize.current = { width: naturalWidth, height: naturalHeight };
+
+      const canvas = document.createElement('canvas');
+      canvas.width = naturalWidth;
+      canvas.height = naturalHeight;
+      const ctx = canvas.getContext('2d');
+
+      if (options.blur > 0) ctx.filter = `blur(${options.blur}px)`;
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      const finalOptions = {
+        ...options,
+        roundcoords: 1,
+        layering: 0,
+        scale: 1
+      };
+
+      const result = ImageTracer.imagedataToSVG(imageData, finalOptions);
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(result, "image/svg+xml");
+      const svgEl = doc.querySelector("svg");
+
+      svgEl.setAttribute("viewBox", `0 0 ${canvas.width} ${canvas.height}`);
+      svgEl.setAttribute("preserveAspectRatio", "xMidYMid meet");
+      svgEl.setAttribute("width", `${canvas.width}`);
+      svgEl.setAttribute("height", `${canvas.height}`);
+      svgEl.setAttribute("style", "width: 100%; height: 100%; display: block;");
+
+      const serializer = new XMLSerializer();
+      const updatedSVG = serializer.serializeToString(doc.documentElement);
+
+      setSvg(updatedSVG);
+      setSvgData(updatedSVG);
+      const pngData = await convertSvgToPng(updatedSVG);
+      setCachedPng(pngData);
+      setShowSvg(true);
+    };
   };
 
   const triggerSvgDelay = () => {
@@ -208,9 +166,59 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
     }, 300);
   };
 
+  useImperativeHandle(ref, () => ({
+    generate: handleGenerate,
+    reset: resetView
+  }));
+
   useEffect(() => {
-    renderCanvas();
-  }, [svg]);
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      setZoom(z => {
+        const newZoom = Math.max(0.2, Math.min(z + delta, 5));
+        setPosition(pos => clampPosition(pos.x, pos.y));
+        return newZoom;
+      });
+      triggerSvgDelay();
+    };
+
+    const handleMouseDown = (e) => {
+      dragging.current = true;
+      lastPos.current = { x: e.clientX, y: e.clientY };
+    };
+
+    const handleMouseMove = (e) => {
+      if (!dragging.current) return;
+      if (moveFrame.current) cancelAnimationFrame(moveFrame.current);
+      moveFrame.current = requestAnimationFrame(() => {
+        const dx = e.clientX - lastPos.current.x;
+        const dy = e.clientY - lastPos.current.y;
+        lastPos.current = { x: e.clientX, y: e.clientY };
+        setPosition(pos => clampPosition(pos.x + dx, pos.y + dy));
+        triggerSvgDelay();
+      });
+    };
+
+    const handleMouseUp = () => {
+      dragging.current = false;
+      triggerSvgDelay();
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    container.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+      container.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [zoom]);
 
   const wrapperStyle = {
     width: `${wrapperSize}px`,
@@ -237,7 +245,8 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
     display: 'block',
     objectFit: 'contain',
     transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
-    transformOrigin: '0 0'
+    transformOrigin: '0 0',
+    userSelect: 'none'
   };
 
   return (
@@ -256,22 +265,20 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
           <div style={{ alignSelf: 'flex-start' }}>
             <h4 style={{ margin: 0, marginBottom: 6 }}>🖼️ ต้นฉบับ</h4>
             <div style={wrapperStyle}>
-              <img ref={imageRef} src={imageSrc} alt="Original" style={layerStyle} />
+              <img ref={imageRef} src={imageSrc} alt="Original" style={layerStyle} draggable={false} />
             </div>
           </div>
 
           <div style={{ alignSelf: 'flex-start' }}>
             <h4 style={{ margin: 0, marginBottom: 6 }}>🎨 แปลงแล้ว</h4>
             <div style={wrapperStyle}>
-              <canvas ref={canvasRef} width={500} height={500} style={layerStyle} />
-              {showSvg && (
+              {!showSvg && cachedPng && (
+                <img src={cachedPng} alt="preview" style={layerStyle} draggable={false} />
+              )}
+              {showSvg && svgReady && (
                 <div
                   ref={svgRef}
-                  style={{
-                    ...layerStyle,
-                    visibility: svgReady ? 'visible' : 'hidden',
-                    overflow: 'hidden'
-                  }}
+                  style={layerStyle}
                   dangerouslySetInnerHTML={{ __html: svg }}
                 />
               )}
