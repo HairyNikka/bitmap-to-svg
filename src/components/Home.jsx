@@ -8,6 +8,8 @@ import { faWrench, faRedo, faSearchPlus } from '@fortawesome/free-solid-svg-icon
 export default function Home() {
   const [svgData, setSvgData] = useState(null);
   const [imageSrc, setImageSrc] = useState("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAVUlEQVR42mNgGAWjYBSMAgMDwz8GMJvBBRC8Z8BiMDQyQDxHIxYhwgVAF+Q/GfCVAAck6AhVwAxY2A1WQnEI8QvGQbEQK6RmW0UCQQMAM4USMhhCEZQAAAAASUVORK5CYII=");
+  const [uploadedFilename, setUploadedFilename] = useState('');
+
   const [options, setOptions] = useState({
     pathomit: 1,
     numberofcolors: 8,
@@ -15,6 +17,7 @@ export default function Home() {
     scale: 1,
     blur: 0
   });
+
   const [monoMode, setMonoMode] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
 
@@ -36,6 +39,7 @@ export default function Home() {
             <SvgPreview
               ref={svgRef}
               imageSrc={imageSrc}
+              filename={uploadedFilename}
               options={options}
               monoMode={monoMode}
               setSvgData={setSvgData}
@@ -46,7 +50,7 @@ export default function Home() {
           <div
             style={{
               width: '300px',
-              height: '470px',
+              height: '520px',
               overflowY: 'auto',
               alignSelf: 'flex-start',
               marginTop: '30px',
@@ -64,6 +68,7 @@ export default function Home() {
               setImageSrc={setImageSrc}
               setOptions={setOptions}
               setMonoMode={setMonoMode}
+              setFilename={setUploadedFilename}
               imageSrc={imageSrc}
               options={options}
               resetTrigger={resetTrigger}

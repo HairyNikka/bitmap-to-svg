@@ -38,7 +38,7 @@ export default function Navbar() {
     background: "#222",
     color: "#fff",
     padding: "10px 20px",
-    position: "fixed", // จาก sticky → fixed
+    position: "fixed", 
     top: 0,
     left: 0,
     width: '100%',

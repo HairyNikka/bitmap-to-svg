@@ -1,7 +1,7 @@
 // ✅ UploadImage: ปรับขนาดปุ่ม Preset ให้เท่ากัน และขนาดตัวอักษรพอดีบรรทัดเดียว
 import React, { useState, useEffect, useRef } from 'react';
 
-export default function UploadImage({ setSvgData, setImageSrc, setOptions, imageSrc, options, resetTrigger }) {
+export default function UploadImage({ setSvgData, setImageSrc, setOptions, imageSrc, options, resetTrigger, setFilename}) {
   const defaultOptions = {
     pathomit: 1,
     numberofcolors: 8,
@@ -37,6 +37,9 @@ export default function UploadImage({ setSvgData, setImageSrc, setOptions, image
     reader.onloadend = () => setImageSrc(reader.result);
     reader.readAsDataURL(file);
     setFileName(file.name);
+      if (typeof setFilename === 'function') {
+    setFilename(file.name); 
+  }
   };
 
   const handleDrop = (e) => {

@@ -1,15 +1,20 @@
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import ImageTracer from 'imagetracerjs';
 import { Canvg } from 'canvg';
+import ExportPreview from './ExportPreview';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faDownload } from '@fortawesome/free-solid-svg-icons';
 
-const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
+const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename }, ref) => {
   const [svg, setSvg] = useState(null);
   const [showSvg, setShowSvg] = useState(false);
   const [svgReady, setSvgReady] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [cachedPng, setCachedPng] = useState(null);
+  const [showExport, setShowExport] = useState(false);
 
+  const uploadedFilename = filename;
   const svgRef = useRef(null);
   const imageRef = useRef(null);
   const containerRef = useRef(null);
@@ -53,55 +58,6 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
     const v = await Canvg.fromString(ctx, svgString);
     await v.render();
     return canvas.toDataURL("image/png");
-  };
-
-  const downloadPNG = async () => {
-    const { width, height } = naturalSize.current;
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    const v = await Canvg.fromString(ctx, svg);
-    await v.render();
-    const pngUrl = canvas.toDataURL("image/png");
-    const link = document.createElement("a");
-    link.download = "converted.png";
-    link.href = pngUrl;
-    link.click();
-  };
-
-  const downloadPDF = async () => {
-    const blob = new Blob([svg], { type: 'image/svg+xml' });
-    const res = await fetch("http://localhost:8000/convert-pdf/", {
-      method: "POST",
-      body: blob,
-      headers: { 'Content-Type': 'image/svg+xml' }
-    });
-    if (!res.ok) return alert("PDF export failed");
-    const pdfBlob = await res.blob();
-    const url = URL.createObjectURL(pdfBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "converted.pdf";
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const downloadEPS = async () => {
-    const blob = new Blob([svg], { type: 'image/svg+xml' });
-    const res = await fetch("http://localhost:8000/convert-eps/", {
-      method: "POST",
-      body: blob,
-      headers: { 'Content-Type': 'image/svg+xml' }
-    });
-    if (!res.ok) return alert("EPS export failed");
-    const epsBlob = await res.blob();
-    const url = URL.createObjectURL(epsBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "converted.eps";
-    link.click();
-    URL.revokeObjectURL(url);
   };
 
   const handleGenerate = async () => {
@@ -224,12 +180,12 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
     width: `${wrapperSize}px`,
     height: `${wrapperSize}px`,
     backgroundImage: `
-      linear-gradient(to right, #eee 1px, transparent 1px),
-      linear-gradient(to bottom, #eee 1px, transparent 1px)
+      linear-gradient(to right, #333 1px, transparent 1px),
+      linear-gradient(to bottom, #333 1px, transparent 1px)
     `,
     backgroundSize: '20px 20px',
-    backgroundColor: '#fff',
-    border: '1px solid #ccc',
+    backgroundColor: '#1e1e1e',
+    border: '1px solid #555',
     position: 'relative',
     overflow: 'hidden',
     cursor: 'grab'
@@ -284,27 +240,51 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData }, ref) => {
               )}
             </div>
             {svg && svg.includes('<path') && (
-              <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
-                <a
-                  href={`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`}
-                  download="converted.svg"
+              <div style={{ marginTop: '10px', width: `${wrapperSize}px` }}>
+                <button
+                  onClick={() => setShowExport(true)}
                   style={{
-                    padding: '6px 12px',
-                    backgroundColor: '#595959',
+                    width: '100%',
+                    padding: '12px',
+                    backgroundColor: '#1e1e1e',
                     color: 'white',
-                    borderRadius: '6px',
-                    textDecoration: 'none'
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    border: '1px solid #444',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 0 0 1px transparent'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.backgroundColor = '#2a2a2a';
+                    e.currentTarget.style.boxShadow = '0 0 0 1px #4ade80';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.backgroundColor = '#1e1e1e';
+                    e.currentTarget.style.boxShadow = '0 0 0 1px transparent';
                   }}
                 >
-                  ⬇️ SVG
-                </a>
-                <button onClick={downloadPDF} style={{ padding: '6px 12px', backgroundColor: '#595959', color: 'white', borderRadius: '6px', border: 'none' }}>⬇️ PDF</button>
-                <button onClick={downloadPNG} style={{ padding: '6px 12px', backgroundColor: '#595959', color: 'white', borderRadius: '6px', border: 'none' }}>⬇️ PNG</button>
-                <button onClick={downloadEPS} style={{ padding: '6px 12px', backgroundColor: '#595959', color: 'white', borderRadius: '6px', border: 'none' }}>⬇️ EPS</button>
+                  <FontAwesomeIcon icon={faDownload} />
+                  ดาวน์โหลด
+                </button>
               </div>
             )}
           </div>
         </div>
+      )}
+      {showExport && (
+        <ExportPreview
+          svg={svg}
+          cachedPng={cachedPng}
+          filename={uploadedFilename}
+          dimensions={naturalSize.current}
+          colorCount={options.numberofcolors}
+          onClose={() => setShowExport(false)}
+        />
       )}
     </div>
   );
