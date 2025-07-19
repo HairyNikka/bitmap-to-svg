@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
+    'accounts',
+    'core'
 ]
 
 MIDDLEWARE = [
@@ -108,6 +110,13 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTH_USER_MODEL = 'accounts.User'
+
+# Django Admin customization (เพิ่มเติม)
+ADMIN_SITE_HEADER = "Bitmap to Vector - ระบบจัดการ"
+ADMIN_SITE_TITLE = "Admin Panel"
+ADMIN_INDEX_TITLE = "ระบบจัดการหลังบ้าน"
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
@@ -139,3 +148,6 @@ CORS_ALLOW_ALL_ORIGINS = True
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
 ]
+
+USE_TZ = True
+TIME_ZONE = 'Asia/Bangkok'
