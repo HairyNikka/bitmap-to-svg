@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import AuthLayout from '../components/AuthLayout'; // #1: Import AuthLayout
 
 export default function Register() {
   const [username, setUsername] = useState('');
@@ -68,8 +67,15 @@ export default function Register() {
     }
   };
 
-  // #2: ลด styles ลง เพราะ positioning จัดการโดย AuthLayout แล้ว  
   const styles = {
+    container: {
+      minHeight: '100vh',
+      backgroundColor: '#1a1a1a',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '20px'
+    },
     card: {
       backgroundColor: '#2a2a2a',
       borderRadius: '12px',
@@ -139,12 +145,27 @@ export default function Register() {
       color: '#007bff',
       textDecoration: 'none',
       fontSize: '14px'
+    },
+    homeLink: {
+      position: 'absolute',
+      top: '20px',
+      left: '20px',
+      color: '#a0a0a0',
+      textDecoration: 'none',
+      fontSize: '14px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
     }
   };
 
   return (
-    // #3: Wrap ทั้งหมดด้วย AuthLayout แทนที่จะใช้ div container
-    <AuthLayout>
+    <div style={styles.container}>
+      <Link to="/" style={styles.homeLink}>
+        <span>🖼️</span> กลับหน้าแปลงภาพ
+      </Link>
+
       <div style={styles.card}>
         <h1 style={styles.title}>สมัครสมาชิก</h1>
 
@@ -272,6 +293,6 @@ export default function Register() {
           </p>
         </div>
       </div>
-    </AuthLayout>
+    </div>
   );
 }

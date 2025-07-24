@@ -1,9 +1,8 @@
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
-import AuthLayout from "../components/AuthLayout"; // #1: Import AuthLayout
 
-export default function Login() {
+export default function Login({ setIsAuthenticated, setUsername }) {
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,10 +31,21 @@ export default function Login() {
         const userRes = await axios.get("http://localhost:8000/api/accounts/user/", {
           headers: { Authorization: `Bearer ${res.data.access}` }
         });
+        
         localStorage.setItem("userData", JSON.stringify(userRes.data));
+        
+        // ✅ เพิ่ม: อัพเดท state ใน App.jsx
+        if (setIsAuthenticated) setIsAuthenticated(true);
+        if (setUsername) setUsername(userRes.data.username);
+        
         navigate("/");
       } catch (userErr) {
         console.error("Error fetching user data:", userErr);
+        
+        // ✅ แม้ไม่ได้ user data ก็ยัง login ได้
+        if (setIsAuthenticated) setIsAuthenticated(true);
+        if (setUsername) setUsername(form.username);
+        
         navigate("/");
       }
     } catch (err) {
@@ -55,8 +65,15 @@ export default function Login() {
     }
   };
 
-  // #2: ลด styles ลง เพราะ positioning จัดการโดย AuthLayout แล้ว
   const styles = {
+    container: {
+      minHeight: '100vh',
+      backgroundColor: '#1a1a1a',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px'
+    },
     card: {
       backgroundColor: '#2a2a2a',
       borderRadius: '12px',
@@ -87,6 +104,9 @@ export default function Login() {
       transition: 'border-color 0.3s ease',
       boxSizing: 'border-box'
     },
+    inputFocus: {
+      borderColor: '#007bff'
+    },
     button: {
       width: '100%',
       padding: '12px',
@@ -99,6 +119,9 @@ export default function Login() {
       cursor: loading ? 'not-allowed' : 'pointer',
       transition: 'background-color 0.3s ease',
       marginTop: '10px'
+    },
+    buttonHover: {
+      backgroundColor: loading ? '#495057' : '#0056b3'
     },
     errorAlert: {
       backgroundColor: '#dc3545',
@@ -117,87 +140,123 @@ export default function Login() {
       color: '#007bff',
       textDecoration: 'none',
       fontSize: '14px'
+    },
+    linkHover: {
+      color: '#66b3ff'
+    },
+    homeLink: {
+      position: 'absolute',
+      top: '20px',
+      left: '20px',
+      color: '#a0a0a0',
+      textDecoration: 'none',
+      fontSize: '14px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
     }
   };
 
   return (
-    // #3: Wrap ทั้งหมดด้วย AuthLayout แทนที่จะใช้ div container
-    <AuthLayout>
-      <div style={styles.card}>
-        <h1 style={styles.title}>เข้าสู่ระบบ</h1>
+    <>
+      {/* CSS Reset */}
+      <style>{`
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        body {
+          margin: 0;
+          padding: 0;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        }
+        html, body {
+          height: 100%;
+        }
+      `}</style>
+      
+      <div style={styles.container}>
+        <Link to="/" style={styles.homeLink}>
+          <span>🖼️</span> กลับหน้าแปลงภาพ
+        </Link>
 
-        {error && (
-          <div style={styles.errorAlert}>
-            ❌ {error}
-          </div>
-        )}
+        <div style={styles.card}>
+          <h1 style={styles.title}>เข้าสู่ระบบ</h1>
 
-        <form onSubmit={handleSubmit}>
-          <div style={styles.inputGroup}>
-            <input
-              type="text"
-              name="username"
-              placeholder="ชื่อผู้ใช้"
-              value={form.username}
-              onChange={handleChange}
-              required
+          {error && (
+            <div style={styles.errorAlert}>
+              ❌ {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <div style={styles.inputGroup}>
+              <input
+                type="text"
+                name="username"
+                placeholder="ชื่อผู้ใช้"
+                value={form.username}
+                onChange={handleChange}
+                required
+                disabled={loading}
+                style={{
+                  ...styles.input,
+                  ...(loading && { opacity: 0.7 })
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                onBlur={(e) => e.target.style.borderColor = '#4a4a4a'}
+              />
+            </div>
+
+            <div style={styles.inputGroup}>
+              <input
+                type="password"
+                name="password"
+                placeholder="รหัสผ่าน"
+                value={form.password}
+                onChange={handleChange}
+                required
+                disabled={loading}
+                style={{
+                  ...styles.input,
+                  ...(loading && { opacity: 0.7 })
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#007bff'}
+                onBlur={(e) => e.target.style.borderColor = '#4a4a4a'}
+              />
+            </div>
+
+            <button
+              type="submit"
               disabled={loading}
-              style={{
-                ...styles.input,
-                ...(loading && { opacity: 0.7 })
+              style={styles.button}
+              onMouseEnter={(e) => {
+                if (!loading) e.target.style.backgroundColor = '#0056b3';
               }}
-              onFocus={(e) => e.target.style.borderColor = '#007bff'}
-              onBlur={(e) => e.target.style.borderColor = '#4a4a4a'}
-            />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <input
-              type="password"
-              name="password"
-              placeholder="รหัสผ่าน"
-              value={form.password}
-              onChange={handleChange}
-              required
-              disabled={loading}
-              style={{
-                ...styles.input,
-                ...(loading && { opacity: 0.7 })
+              onMouseLeave={(e) => {
+                if (!loading) e.target.style.backgroundColor = '#007bff';
               }}
-              onFocus={(e) => e.target.style.borderColor = '#007bff'}
-              onBlur={(e) => e.target.style.borderColor = '#4a4a4a'}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={styles.button}
-            onMouseEnter={(e) => {
-              if (!loading) e.target.style.backgroundColor = '#0056b3';
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) e.target.style.backgroundColor = '#007bff';
-            }}
-          >
-            {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
-          </button>
-        </form>
-
-        <div style={styles.linksContainer}>
-          <p style={{ color: '#a0a0a0', margin: '0 0 8px 0', fontSize: '14px' }}>
-            ยังไม่มีบัญชี?{' '}
-            <Link 
-              to="/register" 
-              style={styles.link}
-              onMouseEnter={(e) => e.target.style.color = '#66b3ff'}
-              onMouseLeave={(e) => e.target.style.color = '#007bff'}
             >
-              สมัครสมาชิก
-            </Link>
-          </p>
+              {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+            </button>
+          </form>
+
+          <div style={styles.linksContainer}>
+            <p style={{ color: '#a0a0a0', margin: '0 0 8px 0', fontSize: '14px' }}>
+              ยังไม่มีบัญชี?{' '}
+              <Link 
+                to="/register" 
+                style={styles.link}
+                onMouseEnter={(e) => e.target.style.color = '#66b3ff'}
+                onMouseLeave={(e) => e.target.style.color = '#007bff'}
+              >
+                สมัครสมาชิก
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
-    </AuthLayout>
+    </>
   );
 }

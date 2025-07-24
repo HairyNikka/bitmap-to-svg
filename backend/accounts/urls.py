@@ -4,6 +4,9 @@ from .views import (
     user_activity_logs, CustomTokenObtainPairView, jwt_logout_view,
     log_conversion, log_export
 )
+from .admin_views import (
+    admin_dashboard_stats, admin_users_list, admin_user_detail, admin_activity_logs
+)
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
@@ -24,4 +27,10 @@ urlpatterns = [
     # Conversion & Export logging
     path('log-conversion/', log_conversion, name='log_conversion'),  # บันทึกการแปลง
     path('log-export/', log_export, name='log_export'),              # บันทึกการส่งออก
+
+    # 🔧 Admin APIs
+    path('admin/stats/', admin_dashboard_stats, name='admin_dashboard_stats'),
+    path('admin/users/', admin_users_list, name='admin_users_list'),
+    path('admin/users/<int:user_id>/', admin_user_detail, name='admin_user_detail'),
+    path('admin/logs/', admin_activity_logs, name='admin_activity_logs'),
 ]
