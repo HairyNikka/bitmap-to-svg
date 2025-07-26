@@ -4,6 +4,7 @@ import { Canvg } from 'canvg';
 import ExportPreview from './ExportPreview';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
+import axios from 'axios';
 
 const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename }, ref) => {
   const [svg, setSvg] = useState(null);
@@ -13,6 +14,7 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename }, ref)
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [cachedPng, setCachedPng] = useState(null);
   const [showExport, setShowExport] = useState(false);
+  const [converting, setConverting] = useState(false);
 
   const uploadedFilename = filename;
   const svgRef = useRef(null);
@@ -60,56 +62,101 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename }, ref)
     return canvas.toDataURL("image/png");
   };
 
+  // ฟังก์ชันสำหรับบันทึก conversion log
+  const logConversion = async (filename, fileSize) => {
+    try {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      
+      if (!token) {
+        console.log('User not logged in, skipping conversion logging');
+        return true; // อนุญาตให้แปลงต่อสำหรับ guest
+      }
+
+      const response = await axios.post('http://localhost:8000/api/accounts/log-conversion/', {
+        filename: filename || 'unknown.jpg',
+        file_size: fileSize || 0
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      console.log('Conversion logged successfully:', response.data);
+      return true;
+    } catch (error) {
+      console.error('Failed to log conversion:', error);
+      
+      // ถ้าเกิน limit จะได้ 429 status
+      if (error.response?.status === 429) {
+        alert(`เกินจำนวนการแปลงที่อนุญาตต่อวัน\nเหลือ: ${error.response.data.remaining || 0} ครั้ง`);
+        return false; // ไม่อนุญาตให้แปลง
+      }
+      
+      return true; // error อื่นๆ ให้แปลงต่อได้
+    }
+  };
+
   const handleGenerate = async () => {
-    resetView();
-    if (!imageSrc) return;
+    if (converting) return; // ป้องกันการคลิกซ้ำ
+    setConverting(true);
 
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = imageSrc;
+    try {
+      resetView();
+      if (!imageSrc) return;
 
-    img.onload = async () => {
-      const naturalWidth = img.naturalWidth;
-      const naturalHeight = img.naturalHeight;
-      naturalSize.current = { width: naturalWidth, height: naturalHeight };
+      // 🎯 ตรวจสอบ conversion limit ก่อนแปลง
+      const canProceed = await logConversion(uploadedFilename, imageSrc.length);
+      if (!canProceed) {
+        return; // หยุดการแปลงถ้าเกิน limit
+      }
 
-      const canvas = document.createElement('canvas');
-      canvas.width = naturalWidth;
-      canvas.height = naturalHeight;
-      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = imageSrc;
 
-      if (options.blur > 0) ctx.filter = `blur(${options.blur}px)`;
-      ctx.drawImage(img, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      img.onload = async () => {
+        const naturalWidth = img.naturalWidth;
+        const naturalHeight = img.naturalHeight;
+        naturalSize.current = { width: naturalWidth, height: naturalHeight };
 
-      const finalOptions = {
-        ...options,
-        roundcoords: 1,
-        layering: 0,
-        scale: 1
+        const canvas = document.createElement('canvas');
+        canvas.width = naturalWidth;
+        canvas.height = naturalHeight;
+        const ctx = canvas.getContext('2d');
+
+        if (options.blur > 0) ctx.filter = `blur(${options.blur}px)`;
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        const finalOptions = {
+          ...options,
+          roundcoords: 1,
+          layering: 0,
+          scale: 1
+        };
+
+        const result = ImageTracer.imagedataToSVG(imageData, finalOptions);
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(result, "image/svg+xml");
+        const svgEl = doc.querySelector("svg");
+
+        svgEl.setAttribute("viewBox", `0 0 ${canvas.width} ${canvas.height}`);
+        svgEl.setAttribute("preserveAspectRatio", "xMidYMid meet");
+        svgEl.setAttribute("width", `${canvas.width}`);
+        svgEl.setAttribute("height", `${canvas.height}`);
+        svgEl.setAttribute("style", "width: 100%; height: 100%; display: block;");
+
+        const serializer = new XMLSerializer();
+        const updatedSVG = serializer.serializeToString(doc.documentElement);
+
+        setSvg(updatedSVG);
+        setSvgData(updatedSVG);
+        const pngData = await convertSvgToPng(updatedSVG);
+        setCachedPng(pngData);
+        setShowSvg(true);
       };
-
-      const result = ImageTracer.imagedataToSVG(imageData, finalOptions);
-
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(result, "image/svg+xml");
-      const svgEl = doc.querySelector("svg");
-
-      svgEl.setAttribute("viewBox", `0 0 ${canvas.width} ${canvas.height}`);
-      svgEl.setAttribute("preserveAspectRatio", "xMidYMid meet");
-      svgEl.setAttribute("width", `${canvas.width}`);
-      svgEl.setAttribute("height", `${canvas.height}`);
-      svgEl.setAttribute("style", "width: 100%; height: 100%; display: block;");
-
-      const serializer = new XMLSerializer();
-      const updatedSVG = serializer.serializeToString(doc.documentElement);
-
-      setSvg(updatedSVG);
-      setSvgData(updatedSVG);
-      const pngData = await convertSvgToPng(updatedSVG);
-      setCachedPng(pngData);
-      setShowSvg(true);
-    };
+    } finally {
+      setConverting(false);
+    }
   };
 
   const triggerSvgDelay = () => {
@@ -243,15 +290,16 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename }, ref)
               <div style={{ marginTop: '10px', width: `${wrapperSize}px` }}>
                 <button
                   onClick={() => setShowExport(true)}
+                  disabled={converting}
                   style={{
                     width: '100%',
                     padding: '12px',
-                    backgroundColor: '#1e1e1e',
-                    color: 'white',
+                    backgroundColor: converting ? '#333' : '#1e1e1e',
+                    color: converting ? '#666' : 'white',
                     borderRadius: '10px',
                     fontSize: '16px',
                     border: '1px solid #444',
-                    cursor: 'pointer',
+                    cursor: converting ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
@@ -260,12 +308,16 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename }, ref)
                     boxShadow: '0 0 0 1px transparent'
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.backgroundColor = '#2a2a2a';
-                    e.currentTarget.style.boxShadow = '0 0 0 1px #4ade80';
+                    if (!converting) {
+                      e.currentTarget.style.backgroundColor = '#2a2a2a';
+                      e.currentTarget.style.boxShadow = '0 0 0 1px #4ade80';
+                    }
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.backgroundColor = '#1e1e1e';
-                    e.currentTarget.style.boxShadow = '0 0 0 1px transparent';
+                    if (!converting) {
+                      e.currentTarget.style.backgroundColor = '#1e1e1e';
+                      e.currentTarget.style.boxShadow = '0 0 0 1px transparent';
+                    }
                   }}
                 >
                   <FontAwesomeIcon icon={faDownload} />

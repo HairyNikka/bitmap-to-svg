@@ -107,6 +107,7 @@ class UserActivityLog(models.Model):
         ('register', 'สมัครสมาชิก'),
         ('login', 'เข้าสู่ระบบ'),
         ('logout', 'ออกจากระบบ'),
+        ('upload_image', 'อัปโหลดภาพ'),
         ('convert_image', 'แปลงภาพ'),
         ('export_png', 'ส่งออก PNG'),
         ('export_svg', 'ส่งออก SVG'),

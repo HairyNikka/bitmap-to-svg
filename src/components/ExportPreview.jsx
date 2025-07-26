@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCount }) => {
   const [loadingType, setLoadingType] = useState(null);
@@ -22,6 +23,30 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
     }
     return () => clearInterval(interval);
   }, [loadingType]);
+
+  // ฟังก์ชันสำหรับบันทึก export log
+  const logExport = async (format) => {
+    try {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      
+      if (!token) {
+        console.log('User not logged in, skipping export logging');
+        return;
+      }
+
+      await axios.post('http://localhost:8000/api/accounts/log-export/', {
+        format: format.toLowerCase(),
+        filename: filename || 'converted'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      console.log(`Export ${format.toUpperCase()} logged successfully`);
+    } catch (error) {
+      console.error('Failed to log export:', error);
+      // ไม่ต้องแสดง error ให้ผู้ใช้เห็น เพราะไม่ใช่ core functionality
+    }
+  };
 
   const wrapperStyle = {
     width: '500px',
@@ -78,11 +103,20 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
       link.download = `converted.${type}`;
       link.click();
       URL.revokeObjectURL(url);
+
+      // 🎯 บันทึก export log หลังดาวน์โหลดสำเร็จ
+      await logExport(type);
     } catch (err) {
       alert(`${type.toUpperCase()} export failed`);
     } finally {
       setLoadingType(null);
     }
+  };
+
+  // สำหรับ SVG download
+  const handleSvgDownload = async () => {
+    // 🎯 บันทึก export log สำหรับ SVG
+    await logExport('svg');
   };
 
   const pathCount = svg?.match(/<path /g)?.length || 0;
@@ -136,7 +170,13 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
               <a
                 href={`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`}
                 download="converted.svg"
-                onClick={(e) => loadingType && e.preventDefault()}
+                onClick={(e) => {
+                  if (loadingType) {
+                    e.preventDefault();
+                  } else {
+                    handleSvgDownload(); // 🎯 เรียก logging function
+                  }
+                }}
                 style={{
                   ...buttonStyle,
                   flex: 1,

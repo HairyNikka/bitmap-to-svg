@@ -1,5 +1,6 @@
-// ✅ UploadImage: ปรับขนาดปุ่ม Preset ให้เท่ากัน และขนาดตัวอักษรพอดีบรรทัดเดียว
+// ✅ UploadImage: ปรับขนาดปุ่ม Preset ให้เท่ากัน และขนาดตัวอักษรพอดีบรรทัดเดียว + เพิ่ม API logging
 import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 
 export default function UploadImage({ setSvgData, setImageSrc, setOptions, imageSrc, options, resetTrigger, setFilename}) {
   const defaultOptions = {
@@ -31,15 +32,46 @@ export default function UploadImage({ setSvgData, setImageSrc, setOptions, image
     }));
   };
 
+  // ฟังก์ชันสำหรับบันทึก upload log
+  const logUpload = async (file) => {
+    try {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      
+      // ตรวจสอบว่าผู้ใช้ login อยู่หรือไม่
+      if (!token) {
+        console.log('User not logged in, skipping upload logging');
+        return;
+      }
+
+      await axios.post('http://localhost:8000/api/accounts/log-upload/', {
+        filename: file.name,
+        file_size: file.size,
+        file_type: file.type
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      console.log('Upload logged successfully');
+    } catch (error) {
+      console.error('Failed to log upload:', error);
+      // ไม่ต้องแสดง error ให้ผู้ใช้เห็น เพราะไม่ใช่ core functionality
+    }
+  };
+
   const processFile = (file) => {
     if (!file.type.startsWith('image/')) return;
+    
     const reader = new FileReader();
     reader.onloadend = () => setImageSrc(reader.result);
     reader.readAsDataURL(file);
     setFileName(file.name);
-      if (typeof setFilename === 'function') {
-    setFilename(file.name); 
-  }
+    
+    if (typeof setFilename === 'function') {
+      setFilename(file.name); 
+    }
+
+    // 🎯 เพิ่ม: บันทึก upload log
+    logUpload(file);
   };
 
   const handleDrop = (e) => {

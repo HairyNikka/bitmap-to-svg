@@ -131,7 +131,26 @@ def user_activity_logs(request):
         'total_count': UserActivityLog.objects.filter(user=request.user).count()
     }, status=status.HTTP_200_OK)
 
-# เพิ่ม API สำหรับบันทึก conversion และ export
+# ✅ เพิ่ม API สำหรับบันทึก upload, conversion และ export
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def log_upload(request):
+    """API สำหรับบันทึกการอัปโหลดภาพ"""
+    filename = request.data.get('filename')
+    file_size = request.data.get('file_size')
+    file_type = request.data.get('file_type')  # image/jpeg, image/png, etc.
+    
+    # บันทึก log
+    log_user_activity(request.user, 'upload_image', request, details={
+        'filename': filename,
+        'file_size': file_size,
+        'file_type': file_type
+    })
+    
+    return Response({
+        'message': 'บันทึกการอัปโหลดเรียบร้อย'
+    }, status=status.HTTP_200_OK)
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def log_conversion(request):
