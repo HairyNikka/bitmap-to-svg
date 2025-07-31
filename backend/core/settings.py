@@ -123,11 +123,10 @@ ADMIN_INDEX_TITLE = "ระบบจัดการหลังบ้าน"
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
-
 USE_I18N = True
 
 USE_TZ = True
+TIME_ZONE = 'Asia/Bangkok'
 
 
 # Static files (CSS, JavaScript, Images)
@@ -141,13 +140,33 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# ✅ CORS Settings - Updated
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-]
-CORS_ALLOW_ALL_ORIGINS = True
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
-USE_TZ = True
-TIME_ZONE = 'Asia/Bangkok'
+CORS_ALLOW_ALL_ORIGINS = True  # สำหรับ development
+
+# ✅ เพิ่ม CORS Headers สำหรับ X-Guest-ID
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-guest-id',  # ✅ เพิ่มสำหรับ Guest ID
+]
+
+# ✅ อนุญาต credentials
+CORS_ALLOW_CREDENTIALS = True
+
+# ✅ CSRF Settings
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]

@@ -4,6 +4,7 @@ import axios from 'axios';
 const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCount }) => {
   const [loadingType, setLoadingType] = useState(null);
   const [progress, setProgress] = useState(0);
+  const [limitsInfo, setLimitsInfo] = useState(null);
 
   useEffect(() => {
     let interval;
@@ -24,27 +25,127 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
     return () => clearInterval(interval);
   }, [loadingType]);
 
-  // ฟังก์ชันสำหรับบันทึก export log
+  // 🆕 ดึงข้อมูล limits เมื่อ component mount
+  useEffect(() => {
+    fetchExportLimits();
+  }, []);
+
+  // 🆕 Guest ID Management
+  const getOrCreateGuestId = () => {
+    let guestId = localStorage.getItem('guestId');
+    if (!guestId) {
+      guestId = 'guest-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36);
+      localStorage.setItem('guestId', guestId);
+    }
+    return guestId;
+  };
+
+  // 🆕 ดึงข้อมูล export limits (แบบ Headers - Recommended)
+  const fetchExportLimits = async () => {
+    try {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      const guestId = getOrCreateGuestId();
+      
+      console.log('🔍 Debug fetchExportLimits:', { token: !!token, guestId });
+      
+      const headers = { 'Content-Type': 'application/json' };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      } else {
+        headers['X-Guest-ID'] = guestId;
+      }
+
+      console.log('🔍 Request headers:', headers);
+
+      const response = await axios.get('http://localhost:8000/api/accounts/export-limits/', { headers });
+      
+      console.log('🔍 Response data:', response.data);
+      
+      setLimitsInfo(response.data);
+
+      // อัปเดต guest_id ถ้าได้รับจาก backend
+      if (response.data.guest_id) {
+        localStorage.setItem('guestId', response.data.guest_id);
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch export limits:', error);
+      console.error('❌ Error response:', error.response?.data);
+      
+      // ✅ Fallback สำหรับ guest ถ้า API ไม่ทำงาน
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      if (!token) {
+        setLimitsInfo({
+          user_type: 'guest',
+          is_unlimited: false,
+          daily_limit: 3,
+          used_today: 0,
+          remaining: 3,
+          guest_id: getOrCreateGuestId()
+        });
+      }
+    }
+  };
+
+  // 🔄 Updated export logging with limits checking
   const logExport = async (format) => {
     try {
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      const guestId = getOrCreateGuestId();
       
-      if (!token) {
-        console.log('User not logged in, skipping export logging');
-        return;
-      }
-
-      await axios.post('http://localhost:8000/api/accounts/log-export/', {
+      const payload = {
         format: format.toLowerCase(),
         filename: filename || 'converted'
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      };
+
+      // เพิ่ม guest_id สำหรับ guest users
+      if (!token) {
+        payload.guest_id = guestId;
+      }
+
+      const headers = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await axios.post('http://localhost:8000/api/accounts/log-export/', payload, { headers });
 
       console.log(`Export ${format.toUpperCase()} logged successfully`);
+      
+      // 🔄 อัปเดต guest_id ถ้าได้รับจาก backend
+      if (response.data.guest_id) {
+        localStorage.setItem('guestId', response.data.guest_id);
+      }
+
+      // 🆕 รีเฟรช limits หลังส่งออกสำเร็จ
+      await fetchExportLimits();
+
+      return {
+        success: true,
+        remaining: response.data.remaining_exports || 0
+      };
     } catch (error) {
       console.error('Failed to log export:', error);
-      // ไม่ต้องแสดง error ให้ผู้ใช้เห็น เพราะไม่ใช่ core functionality
+      
+      // 🚫 จัดการกรณีเกิน limit
+      if (error.response?.status === 429) {
+        const errorData = error.response.data;
+        const userType = errorData.user_type || 'guest';
+        const remaining = errorData.remaining || 0;
+        
+        let message = `🚫 เกินจำนวนการส่งออกต่อวัน!\n`;
+        if (userType === 'guest') {
+          message += `Guest ได้ 3 ครั้งต่อวัน (เหลือ ${remaining} ครั้ง)\n\n`;
+          message += `💡 เข้าสู่ระบบเพื่อส่งออกได้ 10 ครั้งต่อวัน`;
+        } else {
+          message += `User ได้ 10 ครั้งต่อวัน (เหลือ ${remaining} ครั้ง)`;
+        }
+        
+        alert(message);
+        return { success: false, remaining };
+      }
+      
+      return { success: false, remaining: 0 };
     }
   };
 
@@ -76,6 +177,15 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
   const handleDownload = async (type) => {
     setLoadingType(type);
     try {
+      // 🎯 PNG ไม่ต้องตรวจสอบ limit
+      if (type !== 'png') {
+        const exportResult = await logExport(type);
+        
+        if (!exportResult.success) {
+          return; // หยุดถ้าเกิน limit
+        }
+      }
+
       let blob;
       if (type === 'pdf' || type === 'eps') {
         const res = await fetch(`http://localhost:8000/convert-${type}/`, {
@@ -95,6 +205,9 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
         ctx.drawImage(img, 0, 0);
         const dataUrl = canvas.toDataURL('image/png');
         blob = await (await fetch(dataUrl)).blob();
+      } else if (type === 'svg') {
+        // ✅ เพิ่มการจัดการ SVG
+        blob = new Blob([svg], { type: 'image/svg+xml' });
       }
 
       const url = URL.createObjectURL(blob);
@@ -104,19 +217,11 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
       link.click();
       URL.revokeObjectURL(url);
 
-      // 🎯 บันทึก export log หลังดาวน์โหลดสำเร็จ
-      await logExport(type);
     } catch (err) {
-      alert(`${type.toUpperCase()} export failed`);
+      alert(`${type.toUpperCase()} export failed: ${err.message}`);
     } finally {
       setLoadingType(null);
     }
-  };
-
-  // สำหรับ SVG download
-  const handleSvgDownload = async () => {
-    // 🎯 บันทึก export log สำหรับ SVG
-    await logExport('svg');
   };
 
   const pathCount = svg?.match(/<path /g)?.length || 0;
@@ -127,6 +232,70 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
     const ext = dotIndex !== -1 ? name.slice(dotIndex) : '';
     const base = name.slice(0, maxLength - ext.length - 3);
     return base + '...' + ext;
+  };
+
+  // 🆕 Render Limits Info UI
+  const renderLimitsInfo = () => {
+    console.log('🔍 renderLimitsInfo - limitsInfo:', limitsInfo); // Debug log
+    
+    if (!limitsInfo) {
+      return (
+        <div style={limitsInfoStyle}>
+          <div style={{ color: '#ef4444' }}>⚠️ กำลังโหลดข้อมูล limits...</div>
+        </div>
+      );
+    }
+
+    const { user_type, is_unlimited, daily_limit, used_today, remaining } = limitsInfo;
+
+    if (is_unlimited) {
+      return (
+        <div style={limitsInfoStyle}>
+          <div style={limitsSectionStyle}>
+            <div style={limitsHeaderStyle}>
+              ✨ <strong>สถานะ: ไม่จำกัดการส่งออก</strong>
+            </div>
+            <div style={limitsDetailStyle}>
+              🎉 Admin/Superuser สามารถส่งออกได้ไม่จำกัด
+            </div>
+          </div>
+          <div style={pngNoticeStyle}>
+            💡 <strong>PNG:</strong> ส่งออกได้ไม่จำกัด (ไม่นับครั้ง)
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={limitsInfoStyle}>
+        <div style={limitsSectionStyle}>
+          <div style={limitsHeaderStyle}>
+            📊 <strong>การส่งออกวันนี้: {used_today}/{daily_limit} ครั้ง</strong>
+          </div>
+          <div style={limitsDetailStyle}>
+            {remaining > 0 ? (
+              <span style={{ color: '#4ade80' }}>
+                ✅ เหลือ <strong>{remaining} ครั้ง</strong> (SVG, PDF, EPS)
+              </span>
+            ) : (
+              <span style={{ color: '#ef4444' }}>
+                ❌ <strong>หมดโควต้าแล้ว</strong> สำหรับ SVG, PDF, EPS
+              </span>
+            )}
+          </div>
+        </div>
+        
+        <div style={pngNoticeStyle}>
+          💡 <strong>PNG:</strong> ส่งออกได้ไม่จำกัด (ไม่นับครั้ง)
+        </div>
+
+        {user_type === 'guest' && (
+          <div style={guestNoticeStyle}>
+            🔐 <strong>เข้าสู่ระบบ</strong> เพื่อเพิ่มโควต้าเป็น <strong>10 ครั้ง/วัน</strong>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -167,29 +336,19 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
               >
                 PNG
               </button>
-              <a
-                href={`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`}
-                download="converted.svg"
-                onClick={(e) => {
-                  if (loadingType) {
-                    e.preventDefault();
-                  } else {
-                    handleSvgDownload(); // 🎯 เรียก logging function
-                  }
-                }}
+              <button
+                onClick={() => handleDownload('svg')}
                 style={{
                   ...buttonStyle,
                   flex: 1,
-                  textDecoration: 'none',
-                  textAlign: 'center',
                   pointerEvents: loadingType ? 'none' : 'auto',
                   opacity: loadingType ? 0.5 : 1,
                   cursor: loadingType ? 'not-allowed' : 'pointer'
                 }}
-                aria-disabled={!!loadingType}
+                disabled={!!loadingType}
               >
                 SVG
-              </a>
+              </button>
               <button
                 onClick={() => handleDownload('pdf')}
                 style={{
@@ -218,6 +377,9 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
               </button>
             </div>
 
+            {/* 🆕 Limits Info Section */}
+            {renderLimitsInfo()}
+
             {loadingType && (
               <div style={{ marginTop: '16px', color: 'white', textAlign: 'center' }}>
                 🔄 กำลังส่งออก {loadingType.toUpperCase()}...
@@ -234,6 +396,49 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
   );
 };
 
+// 🆕 Styles for Limits Info (Dark Theme)
+const limitsInfoStyle = {
+  backgroundColor: '#2a2a2a',
+  border: '1px solid #444',
+  borderRadius: '8px',
+  padding: '12px',
+  marginTop: '12px',
+  color: 'white',
+  fontSize: '13px'
+};
+
+const limitsSectionStyle = {
+  marginBottom: '8px'
+};
+
+const limitsHeaderStyle = {
+  marginBottom: '4px',
+  color: '#e5e7eb'
+};
+
+const limitsDetailStyle = {
+  fontSize: '12px',
+  color: '#d1d5db'
+};
+
+const pngNoticeStyle = {
+  backgroundColor: '#1e40af',
+  padding: '6px 8px',
+  borderRadius: '4px',
+  fontSize: '11px',
+  color: '#dbeafe',
+  marginBottom: '6px'
+};
+
+const guestNoticeStyle = {
+  backgroundColor: '#3653b2ff',
+  padding: '6px 8px',
+  borderRadius: '4px',
+  fontSize: '11px',
+  color: '#fed7aa'
+};
+
+// Original styles
 const buttonStyle = {
   padding: '10px 0',
   backgroundColor: '#2a2a2a',

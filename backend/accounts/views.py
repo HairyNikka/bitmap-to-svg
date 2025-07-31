@@ -9,8 +9,14 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView as BaseTokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-# เพิ่ม import สำหรับ logging system
+# เพิ่ม import สำหรับ logging system และ guest tracking
 from .models import UserActivityLog
+from .utils import (
+    check_export_permission, 
+    increment_export_count, 
+    get_export_limits_info,
+    format_export_details
+)
 
 # ใช้ get_user_model() แทน direct import
 User = get_user_model()
@@ -51,7 +57,9 @@ class UserView(APIView):
             "email": user.email,
             "user_type": getattr(user, 'user_type', 'user'),  # เพิ่ม user_type
             "date_joined": user.date_joined,  # เพิ่มวันที่สมัคร
-            "last_login": user.last_login  # เพิ่มการ login ครั้งล่าสุด
+            "last_login": user.last_login,  # เพิ่มการ login ครั้งล่าสุด
+            # 🔄 เพิ่มข้อมูล export limits
+            "export_limits": get_export_limits_info(request)
         })
 
 # เพิ่ม API views สำหรับ login/logout
@@ -81,7 +89,9 @@ def login_view(request):
                     'username': user.username,
                     'email': user.email,
                     'user_type': getattr(user, 'user_type', 'user'),
-                    'last_login': user.last_login
+                    'last_login': user.last_login,
+                    # 🔄 เพิ่มข้อมูล export limits
+                    'export_limits': get_export_limits_info(request)
                 }
             }, status=status.HTTP_200_OK)
         else:
@@ -131,75 +141,112 @@ def user_activity_logs(request):
         'total_count': UserActivityLog.objects.filter(user=request.user).count()
     }, status=status.HTTP_200_OK)
 
+# 🆕 API สำหรับดู export limits (สำหรับ guest และ user)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_export_limits(request):
+    """API สำหรับดูข้อมูล export limits"""
+    limits_info = get_export_limits_info(request)
+    return Response(limits_info, status=status.HTTP_200_OK)
+
 # ✅ เพิ่ม API สำหรับบันทึก upload, conversion และ export
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # 🔄 เปลี่ยนเป็น AllowAny เพื่อรองรับ guest
 def log_upload(request):
-    """API สำหรับบันทึกการอัปโหลดภาพ"""
+    """API สำหรับบันทึกการอัปโหลดภาพ (รองรับ guest)"""
     filename = request.data.get('filename')
     file_size = request.data.get('file_size')
     file_type = request.data.get('file_type')  # image/jpeg, image/png, etc.
     
-    # บันทึก log
-    log_user_activity(request.user, 'upload_image', request, details={
-        'filename': filename,
-        'file_size': file_size,
-        'file_type': file_type
-    })
+    # บันทึก log เฉพาะ user ที่ login (guest ไม่บันทึก upload log)
+    if request.user.is_authenticated:
+        log_user_activity(request.user, 'upload_image', request, details={
+            'filename': filename,
+            'file_size': file_size,
+            'file_type': file_type
+        })
     
     return Response({
         'message': 'บันทึกการอัปโหลดเรียบร้อย'
     }, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # 🔄 เปลี่ยนเป็น AllowAny เพื่อรองรับ guest
 def log_conversion(request):
-    """API สำหรับบันทึกการแปลงภาพ"""
+    """API สำหรับบันทึกการแปลงภาพ (รองรับ guest)"""
     filename = request.data.get('filename')
     file_size = request.data.get('file_size')
     
-    # ตรวจสอบว่าสามารถแปลงได้หรือไม่
-    if not request.user.can_convert_today():
-        return Response({
-            'error': 'เกินจำนวนการแปลงที่อนุญาตต่อวัน',
-            'remaining': request.user.get_remaining_conversions_today()
-        }, status=status.HTTP_429_TOO_MANY_REQUESTS)
-    
-    # เพิ่มจำนวนการแปลง
-    request.user.increment_conversion_count()
-    
-    # บันทึก log
-    log_user_activity(request.user, 'convert_image', request, details={
-        'filename': filename,
-        'file_size': file_size,
-        'remaining_conversions': request.user.get_remaining_conversions_today()
-    })
+    # ⚠️ ตอนนี้การแปลงไม่มีขีดจำกัด - เฉพาะการส่งออกเท่านั้น
+    # บันทึก log เฉพาะ user ที่ login
+    if request.user.is_authenticated:
+        # เก็บ conversion count เดิมไว้ (สำหรับสถิติ)
+        request.user.increment_conversion_count()
+        
+        log_user_activity(request.user, 'convert_image', request, details={
+            'filename': filename,
+            'file_size': file_size,
+            'remaining_conversions': request.user.get_remaining_conversions_today()
+        })
     
     return Response({
-        'message': 'บันทึกการแปลงเรียบร้อย',
-        'remaining_conversions': request.user.get_remaining_conversions_today()
+        'message': 'บันทึกการแปลงเรียบร้อย'
     }, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def log_export(request):
-    """API สำหรับบันทึกการส่งออกไฟล์"""
+    """API สำหรับบันทึกการส่งออกไฟล์ (รองรับ guest + limits) - PNG ไม่นับ limit"""
     export_format = request.data.get('format')  # png, svg, pdf, eps
     filename = request.data.get('filename')
+    guest_id = request.data.get('guest_id')  # จาก frontend (สำหรับ guest)
     
     if export_format not in ['png', 'svg', 'pdf', 'eps']:
         return Response({
             'error': 'รูปแบบไฟล์ไม่ถูกต้อง'
         }, status=status.HTTP_400_BAD_REQUEST)
     
-    # บันทึก log
-    log_user_activity(request.user, f'export_{export_format}', request, details={
-        'original_filename': filename,
-        'export_format': export_format
-    })
+    # 🎯 PNG ไม่ต้องตรวจสอบ limit - ส่งออกได้ไม่จำกัด
+    if export_format.lower() == 'png':
+        # บันทึก log เฉพาะ user ที่ login (สำหรับสถิติ)
+        if request.user.is_authenticated:
+            log_user_activity(request.user, 'export_png', request, 
+                             details=format_export_details(export_format, filename))
+        
+        return Response({
+            'message': f'บันทึกการส่งออก {export_format.upper()} เรียบร้อย (ไม่นับ limit)',
+            'remaining_exports': 'unlimited',  # PNG ไม่จำกัด
+            'guest_id': guest_id,
+            'format_exempt': True  # บอกว่าไฟล์นี้ไม่นับ limit
+        }, status=status.HTTP_200_OK)
+    
+    # 🎯 สำหรับ SVG, PDF, EPS - ตรวจสอบ limit ตามปกติ
+    can_export, remaining_count, returned_guest_id = check_export_permission(request)
+    
+    if not can_export:
+        user_type = 'guest' if not request.user.is_authenticated else 'user'
+        return Response({
+            'error': f'เกินจำนวนการส่งออกที่อนุญาตต่อวัน',
+            'remaining': remaining_count,
+            'user_type': user_type,
+            'guest_id': returned_guest_id
+        }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+    
+    # 🔄 เพิ่มจำนวนการส่งออก (ยกเว้น PNG)
+    returned_guest_id = increment_export_count(request)
+    
+    # 📊 บันทึก log (เฉพาะ user ที่ login)
+    if request.user.is_authenticated:
+        log_user_activity(request.user, f'export_{export_format}', request, 
+                         details=format_export_details(export_format, filename))
+    
+    # 📈 ดูจำนวนที่เหลือหลังจากส่งออก
+    _, remaining_after, _ = check_export_permission(request)
     
     return Response({
-        'message': f'บันทึกการส่งออก {export_format.upper()} เรียบร้อย'
+        'message': f'บันทึกการส่งออก {export_format.upper()} เรียบร้อย',
+        'remaining_exports': remaining_after,
+        'guest_id': returned_guest_id  # ส่งกลับให้ frontend update LocalStorage
     }, status=status.HTTP_200_OK)
 
 class CustomTokenObtainPairView(BaseTokenObtainPairView):
@@ -218,6 +265,11 @@ class CustomTokenObtainPairView(BaseTokenObtainPairView):
                 # บันทึก log การ login
                 log_user_activity(user, 'login', request, 
                                 details={'login_method': 'JWT'})
+                
+                # 🔄 เพิ่มข้อมูล export limits ใน response
+                if hasattr(response, 'data') and response.data:
+                    response.data['export_limits'] = get_export_limits_info(request)
+                    
             except User.DoesNotExist:
                 pass
         

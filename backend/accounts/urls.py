@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     RegisterView, UserView, login_view, logout_view, 
     user_activity_logs, CustomTokenObtainPairView, jwt_logout_view,
-    log_conversion, log_export, log_upload
+    log_conversion, log_export, log_upload, get_export_limits
 )
 from .admin_views import (
     admin_dashboard_stats, admin_users_list, admin_user_detail, admin_activity_logs
@@ -24,10 +24,13 @@ urlpatterns = [
     # Activity logs
     path('logs/', user_activity_logs, name='user_logs'),  # ดู activity logs
     
-    # Conversion & Export logging
+    # Export limits & tracking
+    path('export-limits/', get_export_limits, name='get_export_limits'),    # ดู export limits
+    
+    # Upload, Conversion & Export logging
+    path('log-upload/', log_upload, name='log_upload'),          # บันทึกการอัปโหลด
     path('log-conversion/', log_conversion, name='log_conversion'),  # บันทึกการแปลง
     path('log-export/', log_export, name='log_export'),              # บันทึกการส่งออก
-    path('log-upload/', log_upload, name='log_upload'),      
 
     # 🔧 Admin APIs
     path('admin/stats/', admin_dashboard_stats, name='admin_dashboard_stats'),
