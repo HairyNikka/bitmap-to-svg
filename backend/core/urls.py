@@ -23,4 +23,5 @@ urlpatterns = [
     path('api/accounts/', include('accounts.urls')), 
     path('convert-pdf/', svg_to_pdf),
     path('convert-eps/', svg_to_eps),  
+
 ]

@@ -1,4 +1,4 @@
-// 🔄 Home.jsx ใช้ FontAwesome icon + ขนาดใหญ่ขึ้น
+// 🔄 Home.jsx ใช้ FontAwesome icon + ขนาดใหญ่ขึ้น + Upload Validation
 import React, { useState, useRef } from 'react';
 import UploadImage, { defaultOptions } from './UploadImage';
 import SvgPreview from './SvgPreview';
@@ -9,6 +9,9 @@ export default function Home() {
   const [svgData, setSvgData] = useState(null);
   const [imageSrc, setImageSrc] = useState("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAAVUlEQVR42mNgGAWjYBSMAgMDwz8GMJvBBRC8Z8BiMDQyQDxHIxYhwgVAF+Q/GfCVAAck6AhVwAxY2A1WQnEI8QvGQbEQK6RmW0UCQQMAM4USMhhCEZQAAAAASUVORK5CYII=");
   const [uploadedFilename, setUploadedFilename] = useState('');
+  
+  // ✅ เพิ่ม state ตรวจสอบว่าอัปโหลดแล้วหรือยัง
+  const [hasUploadedImage, setHasUploadedImage] = useState(false);
 
   const [options, setOptions] = useState({
     pathomit: 1,
@@ -27,6 +30,23 @@ export default function Home() {
     setOptions({ ...defaultOptions });
     setResetTrigger(prev => prev + 1);
     setSvgData(null);
+  };
+
+  // ✅ ฟังก์ชันจัดการการแปลงภาพ
+  const handleConvertImage = () => {
+    if (!hasUploadedImage) {
+      alert('⚠️ กรุณาอัปโหลดรูปภาพก่อนการแปลง!');
+      return;
+    }
+    svgRef.current?.generate();
+  };
+
+  // ✅ ฟังก์ชันอัปเดต image และสถานะการอัปโหลด
+  const handleImageUpdate = (newImageSrc) => {
+    setImageSrc(newImageSrc);
+    // ตรวจสอบว่าเป็นรูปที่อัปโหลดจริงหรือรูป default
+    const isDefaultImage = newImageSrc.includes("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAU");
+    setHasUploadedImage(!isDefaultImage);
   };
 
   return (
@@ -65,7 +85,7 @@ export default function Home() {
           >
             <UploadImage
               setSvgData={setSvgData}
-              setImageSrc={setImageSrc}
+              setImageSrc={handleImageUpdate} // ✅ ใช้ function ใหม่
               setOptions={setOptions}
               setMonoMode={setMonoMode}
               setFilename={setUploadedFilename}
@@ -74,11 +94,38 @@ export default function Home() {
               resetTrigger={resetTrigger}
             />
 
+            {/* ✅ เพิ่ม CSS สำหรับ hover effect */}
+            <style>{`
+              .convert-button {
+                transition: all 0.2s ease;
+                border: 1px solid transparent !important;
+              }
+              .convert-button:not(:disabled):hover {
+                border: 1px solid #646cff !important;
+              }
+            `}</style>
+
             {/* ปุ่มจัดการ */}
             <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', marginTop: '20px', flexWrap: 'wrap' }}>
               <button
-                onClick={() => svgRef.current?.generate()}
-                style={{ flex: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                onClick={handleConvertImage}
+                disabled={!hasUploadedImage}
+                className={hasUploadedImage ? 'convert-button' : ''}
+                style={{ 
+                  flex: 2, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: '8px',
+                  opacity: hasUploadedImage ? 1 : 0.5,
+                  cursor: hasUploadedImage ? 'pointer' : 'not-allowed',
+                  backgroundColor: hasUploadedImage ? '#1a1a1a' : '#3a3a3a',
+                  color: hasUploadedImage ? 'white' : '#888',
+                  border: hasUploadedImage ? '1px solid transparent' : '1px solid #555',
+                  padding: '10px 15px',
+                  borderRadius: '8px',
+                  fontWeight: hasUploadedImage ? '600' : 'normal'
+                }}
               >
                 <FontAwesomeIcon icon={faWrench} size="lg" /> แปลงภาพ
               </button>

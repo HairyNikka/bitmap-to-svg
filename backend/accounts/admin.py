@@ -1,13 +1,13 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, UserActivityLog, SystemLog
+from .models import User, UserActivityLog, GuestSession
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    # แสดงในรายการ
+    # ✅ อัปเดตให้แสดง export fields และ emoji
     list_display = [
-        'username', 'email', 'user_type', 'is_active', 
-        'daily_conversions_used', 'daily_conversion_limit', 'date_joined'
+        'username', 'email', 'user_type_display', 'active_status', 
+        'export_usage_display', 'total_exports', 'date_joined'
     ]
     
     # ฟิลเตอร์ด้านข้าง
@@ -19,19 +19,62 @@ class UserAdmin(BaseUserAdmin):
     # เรียงลำดับ
     ordering = ['-date_joined']
     
-    # แก้ไขข้อมูล user
+    # ✅ อัปเดต fieldsets ให้แสดง export fields
     fieldsets = BaseUserAdmin.fieldsets + (
-        ('ข้อมูลเพิ่มเติม', {
-            'fields': ('user_type', 'daily_conversion_limit', 'daily_conversions_used', 'total_conversions')
+        ('📊 Export Limits (ปัจจุบัน)', {
+            'fields': ('user_type', 'daily_export_limit', 'daily_exports_used', 
+                      'last_export_date', 'total_exports')
+        }),
+        ('⚠️ Legacy Fields (เก่า)', {
+            'fields': ('daily_conversion_limit', 'daily_conversions_used', 'total_conversions'),
+            'classes': ('collapse',)  # ซ่อนไว้
         }),
     )
     
     # เพิ่ม user ใหม่
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
         ('ข้อมูลเพิ่มเติม', {
-            'fields': ('email', 'user_type', 'daily_conversion_limit')
+            'fields': ('email', 'user_type', 'daily_export_limit')
         }),
     )
+    
+    # ✅ Custom display functions
+    def active_status(self, obj):
+        """แสดง Active status พร้อม emoji"""
+        if obj.is_active:
+            return "✅ Active"
+        else:
+            return "❌ Inactive"
+    active_status.short_description = 'สถานะ'
+    # ❌ ลบบรรทัดนี้ออก: active_status.boolean = True
+    
+    def user_type_display(self, obj):
+        """แสดง User Type พร้อม emoji"""
+        types = {
+            'superuser': '👑 Superuser',
+            'admin': '🛡️ Admin', 
+            'user': '👤 User'
+        }
+        return types.get(obj.user_type, '👤 User')
+    user_type_display.short_description = 'ประเภทผู้ใช้'
+    
+    def export_usage_display(self, obj):
+        """แสดงการใช้งาน export เป็น progress"""
+        if obj.user_type in ['admin', 'superuser']:
+            return "∞ ไม่จำกัด"
+        
+        if obj.daily_export_limit == 0:
+            return "∞ ไม่จำกัด"
+        
+        percentage = (obj.daily_exports_used / obj.daily_export_limit) * 100
+        
+        if percentage >= 100:
+            return f"🔴 {obj.daily_exports_used}/{obj.daily_export_limit} (เต็ม)"
+        elif percentage >= 80:
+            return f"🟡 {obj.daily_exports_used}/{obj.daily_export_limit} ({percentage:.0f}%)"
+        else:
+            return f"🟢 {obj.daily_exports_used}/{obj.daily_export_limit} ({percentage:.0f}%)"
+    export_usage_display.short_description = 'การใช้งาน Export'
     
     # สิทธิ์การดู (ตาม user_type)
     def get_queryset(self, request):
@@ -58,19 +101,35 @@ class UserAdmin(BaseUserAdmin):
             
         return False  # user ทั่วไปลบไม่ได้
     
-    # Action สำหรับ reset daily conversions
-    actions = ['reset_daily_conversions']
+    # ✅ Actions สำหรับจัดการ users
+    actions = ['reset_export_limits', 'promote_to_admin']
     
-    def reset_daily_conversions(self, request, queryset):
-        count = queryset.update(daily_conversions_used=0)
-        self.message_user(request, f'รีเซ็ตการนับรายวันสำหรับ {count} ผู้ใช้แล้ว')
-    reset_daily_conversions.short_description = "รีเซ็ตการนับการแปลงรายวัน"
+    def reset_export_limits(self, request, queryset):
+        """Reset export limits สำหรับ users ที่เลือก"""
+        count = 0
+        for user in queryset:
+            user.daily_exports_used = 0
+            user.last_export_date = None
+            user.save()
+            count += 1
+        self.message_user(request, f'🔄 รีเซ็ต export limits สำหรับ {count} ผู้ใช้แล้ว')
+    reset_export_limits.short_description = "🔄 รีเซ็ต Export Limits"
+    
+    def promote_to_admin(self, request, queryset):
+        """เลื่อนตำแหน่งเป็น admin"""
+        if request.user.user_type != 'superuser':
+            self.message_user(request, '❌ เฉพาะ Superuser เท่านั้นที่สามารถเลื่อนตำแหน่งได้!', level='ERROR')
+            return
+        
+        count = queryset.filter(user_type='user').update(user_type='admin')
+        self.message_user(request, f'⬆️ เลื่อนตำแหน่งเป็น Admin สำหรับ {count} ผู้ใช้แล้ว')
+    promote_to_admin.short_description = "⬆️ เลื่อนเป็น Admin"
 
 
 @admin.register(UserActivityLog)
 class UserActivityLogAdmin(admin.ModelAdmin):
     # แสดงในรายการ
-    list_display = ['user', 'action', 'timestamp', 'get_details_summary']
+    list_display = ['user', 'action_with_icon', 'timestamp_formatted', 'user_type_display', 'get_details_summary']
     
     # ฟิลเตอร์
     list_filter = ['action', 'timestamp', 'user__user_type']
@@ -84,7 +143,7 @@ class UserActivityLogAdmin(admin.ModelAdmin):
     # อ่านอย่างเดียว
     readonly_fields = ['user', 'action', 'timestamp', 'details']
     
-    # ไม่ให้เพิ่ม/แก้ไข/ลบ
+    # ไม่ให้เพิ่ม/แก้ไข
     def has_add_permission(self, request):
         return False
     
@@ -94,6 +153,34 @@ class UserActivityLogAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # เฉพาะ superuser ลบ log ได้
         return request.user.user_type == 'superuser'
+    
+    # ✅ Custom display functions
+    def action_with_icon(self, obj):
+        """แสดง action พร้อม emoji"""
+        icons = {
+            'login': '🔓', 'logout': '🔒', 'register': '📝',
+            'export_png': '🖼️', 'export_svg': '📐', 
+            'export_pdf': '📄', 'export_eps': '📋',
+            'upload_image': '⬆️', 'convert_image': '🔄'
+        }
+        icon = icons.get(obj.action, '❓')
+        return f"{icon} {obj.get_action_display()}"
+    action_with_icon.short_description = 'การกระทำ'
+    
+    def timestamp_formatted(self, obj):
+        """แสดงเวลาในรูปแบบไทย"""
+        return obj.timestamp.strftime('%d/%m/%Y %H:%M:%S')
+    timestamp_formatted.short_description = 'เวลา'
+    
+    def user_type_display(self, obj):
+        """แสดง user type พร้อม emoji"""
+        types = {
+            'superuser': '👑 Superuser',
+            'admin': '🛡️ Admin', 
+            'user': '👤 User'
+        }
+        return types.get(obj.user.user_type, '👤 User')
+    user_type_display.short_description = 'ประเภทผู้ใช้'
     
     # แสดง details แบบสั้น
     def get_details_summary(self, obj):
@@ -116,28 +203,80 @@ class UserActivityLogAdmin(admin.ModelAdmin):
             return qs.filter(user=request.user)  # เห็นแค่ log ตัวเอง
 
 
-@admin.register(SystemLog)
-class SystemLogAdmin(admin.ModelAdmin):
-    list_display = ['level', 'message_short', 'user', 'timestamp']
-    list_filter = ['level', 'timestamp']
-    search_fields = ['message', 'user__username']
-    ordering = ['-timestamp']
-    readonly_fields = ['level', 'message', 'timestamp', 'user']
-    
-    def message_short(self, obj):
-        return obj.message[:100] + "..." if len(obj.message) > 100 else obj.message
-    message_short.short_description = 'ข้อความ'
+# ✅ เพิ่ม Guest Sessions Management
+@admin.register(GuestSession)
+class GuestSessionAdmin(admin.ModelAdmin):
+    list_display = [
+        'guest_id_short', 'ip_address', 'export_usage_display', 
+        'last_export_date', 'last_activity_formatted', 'created_at_formatted'
+    ]
+    list_filter = ['last_export_date', 'created_at', 'last_activity']
+    search_fields = ['guest_id', 'ip_address']
+    readonly_fields = ['guest_id', 'ip_address', 'created_at', 'last_activity', 'user_agent']
+    ordering = ['-last_activity']
     
     def has_add_permission(self, request):
-        return False
+        return False  # ไม่ให้สร้าง guest session manual
     
     def has_change_permission(self, request, obj=None):
-        return False
+        return False  # ไม่ให้แก้ไข
     
-    def has_delete_permission(self, request, obj=None):
-        return request.user.user_type == 'superuser'
+    # ✅ Custom display functions
+    def guest_id_short(self, obj):
+        return f"{obj.guest_id[:12]}..."
+    guest_id_short.short_description = 'Guest ID'
+    
+    def export_usage_display(self, obj):
+        """แสดงการใช้งาน export ของ guest"""
+        percentage = (obj.daily_exports_used / obj.GUEST_DAILY_LIMIT) * 100
+        
+        if percentage >= 100:
+            return f"🔴 {obj.daily_exports_used}/{obj.GUEST_DAILY_LIMIT} (เต็ม)"
+        elif percentage >= 80:
+            return f"🟡 {obj.daily_exports_used}/{obj.GUEST_DAILY_LIMIT} ({percentage:.0f}%)"
+        else:
+            return f"🟢 {obj.daily_exports_used}/{obj.GUEST_DAILY_LIMIT} ({percentage:.0f}%)"
+    export_usage_display.short_description = 'การใช้งาน Export'
+    
+    def last_activity_formatted(self, obj):
+        if obj.last_activity:
+            return obj.last_activity.strftime('%d/%m/%Y %H:%M')
+        return '-'
+    last_activity_formatted.short_description = 'กิจกรรมล่าสุด'
+    
+    def created_at_formatted(self, obj):
+        return obj.created_at.strftime('%d/%m/%Y %H:%M')
+    created_at_formatted.short_description = 'สร้างเมื่อ'
+    
+    # Action สำหรับลบ guest sessions เก่า
+    actions = ['delete_old_sessions', 'reset_guest_limits']
+    
+    def delete_old_sessions(self, request, queryset):
+        """ลบ Guest Sessions ที่ไม่ได้ใช้งานมากกว่า 7 วัน"""
+        from datetime import timedelta
+        from django.utils import timezone
+        
+        cutoff_date = timezone.now() - timedelta(days=7)
+        old_sessions = queryset.filter(last_activity__lt=cutoff_date)
+        count = old_sessions.count()
+        old_sessions.delete()
+        
+        self.message_user(request, f'🗑️ ลบ Guest Sessions เก่า: {count} รายการ')
+    delete_old_sessions.short_description = "🗑️ ลบ Sessions เก่า (>7 วัน)"
+    
+    def reset_guest_limits(self, request, queryset):
+        """Reset export limits สำหรับ guest sessions ที่เลือก"""
+        count = 0
+        for session in queryset:
+            session.daily_exports_used = 0
+            session.last_export_date = None
+            session.save()
+            count += 1
+        self.message_user(request, f'🔄 รีเซ็ต export limits สำหรับ {count} Guest Sessions')
+    reset_guest_limits.short_description = "🔄 รีเซ็ต Guest Limits"
+
 
 # เปลี่ยนชื่อ admin site
-admin.site.site_header = "Bitmap to Vector - ระบบจัดการ"
+admin.site.site_header = "🖼️ Bitmap to Vector - ระบบจัดการ"
 admin.site.site_title = "Admin Panel"
 admin.site.index_title = "ระบบจัดการหลังบ้าน"

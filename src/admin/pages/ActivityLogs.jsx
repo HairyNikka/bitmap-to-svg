@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import axios from 'axios';
+import { exportActivityLogsToCSV } from '../utils/exportCSV'; // 🆕 Import PDF utility
 
 export default function ActivityLogs() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [exportingPdf, setExportingPdf] = useState(false); // 🆕 Export loading state
   
   // Filters & Search
   const [actionFilter, setActionFilter] = useState('');
@@ -106,6 +108,35 @@ export default function ActivityLogs() {
       setLoading(false);
     }
   };
+
+// 📊 Export CSV Function (เปลี่ยนจาก PDF)
+const handleExportCSV = async () => {
+  setExportingPdf(true); // ใช้ state เดิมก่อน
+  
+  try {
+    const filters = {
+      actionFilter,
+      dateFilter,
+      userFilter,
+      customDateFrom,
+      customDateTo
+    };
+    
+    const result = await exportActivityLogsToCSV(filters, formatDetails);
+    
+    if (result.success) {
+      alert(result.message);
+    } else {
+      alert(result.message);
+    }
+    
+  } catch (error) {
+    console.error('Export error:', error);
+    alert('ไม่สามารถส่งออก CSV ได้ กรุณาลองใหม่อีกครั้ง');
+  } finally {
+    setExportingPdf(false);
+  }
+};
 
   // รายการ actions ที่เป็นไปได้
   const actionOptions = [
@@ -270,6 +301,12 @@ export default function ActivityLogs() {
       gridTemplateColumns: '1fr 1fr',
       gap: '10px'
     },
+    // 🆕 Button Container
+    buttonContainer: {
+      display: 'flex',
+      gap: '10px',
+      alignItems: 'center'
+    },
     clearButton: {
       padding: '10px 20px',
       backgroundColor: '#6c757d',
@@ -277,8 +314,25 @@ export default function ActivityLogs() {
       border: 'none',
       borderRadius: '8px',
       fontSize: '14px',
+      cursor: 'pointer'
+    },
+    // 🆕 Export PDF Button
+    exportButton: {
+      padding: '10px 20px',
+      backgroundColor: '#28a745',
+      color: '#ffffff',
+      border: 'none',
+      borderRadius: '8px',
+      fontSize: '14px',
       cursor: 'pointer',
-      alignSelf: 'end'
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    },
+    exportButtonDisabled: {
+      backgroundColor: '#6c757d',
+      cursor: 'not-allowed',
+      opacity: 0.6
     },
     table: {
       width: '100%',
@@ -519,12 +573,36 @@ export default function ActivityLogs() {
               </div>
             )}
 
-            <button
-              onClick={clearFilters}
-              style={styles.clearButton}
-            >
-              ล้างตัวกรอง
-            </button>
+            {/* 🆕 Buttons Container */}
+            <div style={styles.buttonContainer}>
+              <button
+                onClick={clearFilters}
+                style={styles.clearButton}
+              >
+                ล้างตัวกรอง
+              </button>
+              
+              <button
+                onClick={handleExportCSV}
+                disabled={exportingPdf || logs.length === 0}
+                style={{
+                  ...styles.exportButton,
+                  ...(exportingPdf || logs.length === 0 ? styles.exportButtonDisabled : {})
+                }}
+              >
+                {exportingPdf ? (
+                  <>
+                    <span>⏳</span>
+                    กำลังสร้าง PDF...
+                  </>
+                ) : (
+                  <>
+                    <span>📄</span>
+                    Export CSV
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Activity Logs Table */}
