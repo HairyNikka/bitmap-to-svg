@@ -408,6 +408,8 @@ class UserActivityLog(models.Model):
         ('admin_view_logs', 'ดูบันทึกการใช้งาน'),
         ('password_reset', 'เปลี่ยนรหัสผ่าน'),  
         ('security_questions_verified', 'ยืนยันคำถามความปลอดภัย'), 
+        ('admin_change_password', 'เปลี่ยนรหัสผ่านโดย Admin'),
+        ('admin_edit_security_questions', 'แก้ไขคำถามความปลอดภัยโดย Admin'),
     ]
     
     user = models.ForeignKey(

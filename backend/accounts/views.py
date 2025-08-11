@@ -550,3 +550,138 @@ def get_security_questions(request):
     return Response({
         'questions': questions
     }, status=status.HTTP_200_OK)
+
+
+# 🔐 เพิ่ม APIs สำหรับ Admin จัดการ Password และ Security Questions
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_password(request, user_id):
+    """API สำหรับ admin ดูรหัสผ่านของ user (plain text)"""
+    # ตรวจสอบสิทธิ์ admin
+    if request.user.user_type not in ['admin', 'superuser']:
+        return Response({'error': 'Admin permission required'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        user = User.objects.get(id=user_id)
+        
+        # Admin ไม่สามารถดูรหัส superuser ได้
+        if request.user.user_type == 'admin' and user.user_type in ['admin', 'superuser']:
+            return Response({'error': 'ไม่มีสิทธิ์ดูรหัสผ่านของ admin/superuser'}, status=status.HTTP_403_FORBIDDEN)
+        
+        return Response({
+            'password': user.password,  # ส่ง hashed password หรือจะเก็บ plain text แยกก็ได้
+            'username': user.username
+        }, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response({'error': 'ไม่พบผู้ใช้'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def admin_change_password(request, user_id):
+    """API สำหรับ admin เปลี่ยนรหัสผ่านของ user"""
+    # ตรวจสอบสิทธิ์ admin
+    if request.user.user_type not in ['admin', 'superuser']:
+        return Response({'error': 'Admin permission required'}, status=status.HTTP_403_FORBIDDEN)
+    
+    new_password = request.data.get('new_password')
+    confirm_password = request.data.get('confirm_password')
+    
+    if not new_password or not confirm_password:
+        return Response({'error': 'กรุณากรอกรหัสผ่านครบถ้วน'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if new_password != confirm_password:
+        return Response({'error': 'รหัสผ่านไม่ตรงกัน'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if len(new_password) < 6:
+        return Response({'error': 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user = User.objects.get(id=user_id)
+        
+        # Admin ไม่สามารถเปลี่ยนรหัส admin/superuser ได้
+        if request.user.user_type == 'admin' and user.user_type in ['admin', 'superuser']:
+            return Response({'error': 'ไม่มีสิทธิ์เปลี่ยนรหัสผ่านของ admin/superuser'}, status=status.HTTP_403_FORBIDDEN)
+        
+        user.set_password(new_password)
+        user.save()
+        
+        # บันทึก log การเปลี่ยนรหัสผ่านโดย admin
+        log_user_activity(request.user, 'admin_change_password', request, details={
+            'target_user': user.username,
+            'changed_by': request.user.username
+        })
+        
+        return Response({
+            'success': True,
+            'message': f'เปลี่ยนรหัสผ่านของ {user.username} สำเร็จ'
+        }, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response({'error': 'ไม่พบผู้ใช้'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_security_questions(request, user_id):
+    """API สำหรับ admin ดูคำถามและคำตอบความปลอดภัยของ user"""
+    # ตรวจสอบสิทธิ์ admin
+    if request.user.user_type not in ['admin', 'superuser']:
+        return Response({'error': 'Admin permission required'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        user = User.objects.get(id=user_id)
+        
+        # Admin ไม่สามารถดู security questions ของ admin/superuser ได้
+        if request.user.user_type == 'admin' and user.user_type in ['admin', 'superuser']:
+            return Response({'error': 'ไม่มีสิทธิ์ดูคำถามของ admin/superuser'}, status=status.HTTP_403_FORBIDDEN)
+        
+        return Response({
+            'security_question_1': user.security_question_1 or '',
+            'security_answer_1': user.security_answer_1 or '',
+            'security_question_2': user.security_question_2 or '',
+            'security_answer_2': user.security_answer_2 or '',
+            'has_security_questions': user.has_security_questions()
+        }, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response({'error': 'ไม่พบผู้ใช้'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_user_security_questions(request, user_id):
+    """API สำหรับ admin แก้ไขคำถามและคำตอบความปลอดภัยของ user"""
+    # ตรวจสอบสิทธิ์ admin
+    if request.user.user_type not in ['admin', 'superuser']:
+        return Response({'error': 'Admin permission required'}, status=status.HTTP_403_FORBIDDEN)
+    
+    security_question_1 = request.data.get('security_question_1', '').strip()
+    security_answer_1 = request.data.get('security_answer_1', '').strip()
+    security_question_2 = request.data.get('security_question_2', '').strip()
+    security_answer_2 = request.data.get('security_answer_2', '').strip()
+    
+    if not all([security_question_1, security_answer_1, security_question_2, security_answer_2]):
+        return Response({'error': 'กรุณากรอกคำถามและคำตอบครบถ้วน'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        user = User.objects.get(id=user_id)
+        
+        # Admin ไม่สามารถแก้ไข security questions ของ admin/superuser ได้
+        if request.user.user_type == 'admin' and user.user_type in ['admin', 'superuser']:
+            return Response({'error': 'ไม่มีสิทธิ์แก้ไขคำถามของ admin/superuser'}, status=status.HTTP_403_FORBIDDEN)
+        
+        user.set_security_questions(security_question_1, security_answer_1, security_question_2, security_answer_2)
+        
+        # บันทึก log การแก้ไขคำถาม
+        log_user_activity(request.user, 'admin_edit_security_questions', request, details={
+            'target_user': user.username,
+            'updated_by': request.user.username
+        })
+        
+        return Response({
+            'success': True,
+            'message': f'แก้ไขคำถามความปลอดภัยของ {user.username} สำเร็จ'
+        }, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response({'error': 'ไม่พบผู้ใช้'}, status=status.HTTP_404_NOT_FOUND)

@@ -1,6 +1,7 @@
-// src/admin/pages/UserManagement.jsx
+// src/admin/pages/UserManagement.jsx - Updated version
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
+import EditUserModal from '../components/EditUserModal'; // 🆕 Import modal
 import axios from 'axios';
 
 export default function UserManagement() {
@@ -19,7 +20,6 @@ export default function UserManagement() {
   // Modals
   const [editModal, setEditModal] = useState({ show: false, user: null });
   const [deleteModal, setDeleteModal] = useState({ show: false, user: null });
-  const [editLoading, setEditLoading] = useState(false);
 
   // Current user data for permission checks
   const [currentUser, setCurrentUser] = useState(null);
@@ -60,24 +60,28 @@ export default function UserManagement() {
     }
   };
 
-  const handleEditUser = async (updatedData) => {
-    setEditLoading(true);
+  // 🆕 Handle saving from modal (รวมทุกประเภท)
+  const handleSaveUser = async (userData, saveType) => {
     try {
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       
-      await axios.put(`http://localhost:8000/api/accounts/admin/users/${editModal.user.id}/`, 
-        updatedData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      setEditModal({ show: false, user: null });
-      fetchUsers(); // Refresh data
-      alert('แก้ไขข้อมูลผู้ใช้สำเร็จ');
+      // ส่งข้อมูลไปยัง API ที่เหมาะสม
+      if (saveType === 'basic') {
+        await axios.put(`http://localhost:8000/api/accounts/admin/users/${editModal.user.id}/`, 
+          userData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+      
+      // Refresh data
+      fetchUsers();
+      
+      // แสดงข้อความสำเร็จใน modal (modal จะจัดการเอง)
+      return Promise.resolve();
+      
     } catch (error) {
       console.error('Failed to update user:', error);
-      alert('เกิดข้อผิดพลาดในการแก้ไขข้อมูล');
-    } finally {
-      setEditLoading(false);
+      throw new Error('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
     }
   };
 
@@ -245,25 +249,6 @@ export default function UserManagement() {
       color: '#ffffff',
       marginBottom: '20px'
     },
-    formGroup: {
-      marginBottom: '15px'
-    },
-    label: {
-      display: 'block',
-      color: '#e0e0e0',
-      fontSize: '14px',
-      marginBottom: '5px'
-    },
-    input: {
-      width: '100%',
-      padding: '10px',
-      backgroundColor: '#3a3a3a',
-      border: '1px solid #4a4a4a',
-      borderRadius: '6px',
-      color: '#ffffff',
-      fontSize: '14px',
-      boxSizing: 'border-box'
-    },
     modalButtons: {
       display: 'flex',
       gap: '10px',
@@ -276,10 +261,6 @@ export default function UserManagement() {
       fontSize: '14px',
       cursor: 'pointer',
       border: 'none'
-    },
-    saveButton: {
-      backgroundColor: '#28a745',
-      color: '#ffffff'
     },
     cancelButton: {
       backgroundColor: '#6c757d',
@@ -470,14 +451,13 @@ export default function UserManagement() {
             </button>
           </div>
 
-          {/* Edit User Modal */}
+          {/* 🆕 Edit User Modal - ใช้ component ใหม่ */}
           {editModal.show && (
             <EditUserModal
               user={editModal.user}
               currentUser={currentUser}
-              onSave={handleEditUser}
+              onSave={handleSaveUser}
               onCancel={() => setEditModal({ show: false, user: null })}
-              loading={editLoading}
               styles={styles}
             />
           )}
@@ -512,135 +492,5 @@ export default function UserManagement() {
         </div>
       </AdminLayout>
     </>
-  );
-}
-
-// Edit User Modal Component
-function EditUserModal({ user, currentUser, onSave, onCancel, loading, styles }) {
-  const [formData, setFormData] = useState({
-    email: user.email || '',
-    user_type: user.user_type || 'user',
-    is_active: user.is_active,
-  });
-    const toggleStyles = {
-    toggleContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px'
-    },
-    toggleSwitch: {
-      position: 'relative',
-      width: '50px',
-      height: '24px',
-      backgroundColor: formData.is_active ? '#28a745' : '#dc3545',
-      borderRadius: '12px',
-      cursor: user.id === currentUser?.id ? 'not-allowed' : 'pointer',
-      transition: 'background-color 0.3s ease',
-      opacity: user.id === currentUser?.id ? 0.6 : 1
-    },
-    toggleHandle: {
-      position: 'absolute',
-      top: '2px',
-      left: formData.is_active ? '26px' : '2px',
-      width: '20px',
-      height: '20px',
-      backgroundColor: '#ffffff',
-      borderRadius: '50%',
-      transition: 'left 0.3s ease',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-    },
-    toggleLabel: {
-      color: formData.is_active ? '#28a745' : '#dc3545',
-      fontWeight: '500',
-      fontSize: '14px'
-    },
-    warningText: {
-      fontSize: '12px',
-      color: '#ffd700',
-      marginLeft: '8px'
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(formData);
-  };
-
-  return (
-    <div style={styles.modal}>
-      <div style={styles.modalContent}>
-        <h3 style={styles.modalTitle}>แก้ไขข้อมูลผู้ใช้: {user.username}</h3>
-        
-        <form onSubmit={handleSubmit}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>อีเมล:</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              style={styles.input}
-              required
-            />
-          </div>
-
-          {currentUser?.user_type === 'superuser' && (
-            <div style={styles.formGroup}>
-              <label style={styles.label}>ประเภทผู้ใช้:</label>
-              <select
-                value={formData.user_type}
-                onChange={(e) => setFormData({...formData, user_type: e.target.value})}
-                style={styles.input}
-              >
-                <option value="user">ผู้ใช้</option>
-                <option value="admin">แอดมิน</option>
-                <option value="superuser">ซุปเปอร์ยูสเซอร์</option>
-              </select>
-            </div>
-          )}
-
-          <div style={styles.formGroup}>
-              <label style={styles.label}>สถานะบัญชี:</label>
-              <div style={toggleStyles.toggleContainer}>
-                <div
-                  style={toggleStyles.toggleSwitch}
-                  onClick={() => {
-                    if (user.id !== currentUser?.id) {
-                      setFormData({...formData, is_active: !formData.is_active});
-                    }
-                  }}
-                >
-                  <div style={toggleStyles.toggleHandle}></div>
-                </div>
-                <span style={toggleStyles.toggleLabel}>
-                  {formData.is_active ? '🟢 เปิดใช้งาน' : '🔴 ระงับบัญชี'}
-                </span>
-                {user.id === currentUser?.id && (
-                  <span style={toggleStyles.warningText}>
-                    (ไม่สามารถระงับบัญชีตัวเองได้)
-                  </span>
-                )}
-              </div>
-          </div>
-
-          <div style={styles.modalButtons}>
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={loading}
-              style={{...styles.modalButton, ...styles.cancelButton}}
-            >
-              ยกเลิก
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              style={{...styles.modalButton, ...styles.saveButton}}
-            >
-              {loading ? 'กำลังบันทึก...' : 'บันทึก'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
   );
 }

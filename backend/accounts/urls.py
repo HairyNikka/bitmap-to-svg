@@ -3,7 +3,8 @@ from .views import (
     RegisterView, UserView, login_view, logout_view, 
     user_activity_logs, CustomTokenObtainPairView, jwt_logout_view,
     log_conversion, log_export, log_upload, get_export_limits,
-    forgot_password, verify_security_answers, reset_password, get_security_questions
+    forgot_password, verify_security_answers, reset_password, get_security_questions,
+    get_user_password, admin_change_password, get_user_security_questions, update_user_security_questions
 )
 from .admin_views import (
     admin_dashboard_stats, admin_users_list, admin_user_detail, admin_activity_logs
@@ -44,4 +45,8 @@ urlpatterns = [
     path('admin/users/', admin_users_list, name='admin_users_list'),
     path('admin/users/<int:user_id>/', admin_user_detail, name='admin_user_detail'),
     path('admin/logs/', admin_activity_logs, name='admin_activity_logs'),
+    path('admin/users/<int:user_id>/password/', get_user_password, name='get_user_password'),
+    path('admin/users/<int:user_id>/password/change/', admin_change_password, name='admin_change_password'),
+    path('admin/users/<int:user_id>/security-questions/', get_user_security_questions, name='get_user_security_questions'),
+    path('admin/users/<int:user_id>/security-questions/update/', update_user_security_questions, name='update_user_security_questions'),
 ]
