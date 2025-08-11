@@ -300,10 +300,10 @@ export default function UserManagement() {
       animation: 'spin 1s linear infinite'
     }
   };
-
+  
   const getUserTypeBadgeStyle = (userType) => ({
     ...styles.userTypeBadge,
-    backgroundColor: userType === 'superuser' ? '#ffd700' : userType === 'admin' ? '#ff6b6b' : '#6c757d',
+    backgroundColor: userType === 'superuser' ? '#ffd700' : userType === 'admin' ? '#c63232ff' : '#6c757d',
     color: userType === 'superuser' ? '#000' : '#fff'
   });
 
@@ -317,7 +317,7 @@ export default function UserManagement() {
     const typeMap = {
       'user': 'ผู้ใช้',
       'admin': 'แอดมิน',
-      'superuser': 'ซุปเปอร์แอดมิน'
+      'superuser': 'ซุปเปอร์ยูสเซอร์'
     };
     return typeMap[type] || type;
   };
@@ -367,7 +367,7 @@ export default function UserManagement() {
               <option value="user">ผู้ใช้</option>
               <option value="admin">แอดมิน</option>
               {currentUser?.user_type === 'superuser' && (
-                <option value="superuser">ซุปเปอร์แอดมิน</option>
+                <option value="superuser">ซุปเปอร์ยูสเซอร์</option>
               )}
             </select>
             
@@ -521,8 +521,45 @@ function EditUserModal({ user, currentUser, onSave, onCancel, loading, styles })
     email: user.email || '',
     user_type: user.user_type || 'user',
     is_active: user.is_active,
-    daily_conversion_limit: user.daily_conversion_limit || 50
   });
+    const toggleStyles = {
+    toggleContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    },
+    toggleSwitch: {
+      position: 'relative',
+      width: '50px',
+      height: '24px',
+      backgroundColor: formData.is_active ? '#28a745' : '#dc3545',
+      borderRadius: '12px',
+      cursor: user.id === currentUser?.id ? 'not-allowed' : 'pointer',
+      transition: 'background-color 0.3s ease',
+      opacity: user.id === currentUser?.id ? 0.6 : 1
+    },
+    toggleHandle: {
+      position: 'absolute',
+      top: '2px',
+      left: formData.is_active ? '26px' : '2px',
+      width: '20px',
+      height: '20px',
+      backgroundColor: '#ffffff',
+      borderRadius: '50%',
+      transition: 'left 0.3s ease',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+    },
+    toggleLabel: {
+      color: formData.is_active ? '#28a745' : '#dc3545',
+      fontWeight: '500',
+      fontSize: '14px'
+    },
+    warningText: {
+      fontSize: '12px',
+      color: '#ffd700',
+      marginLeft: '8px'
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -556,38 +593,33 @@ function EditUserModal({ user, currentUser, onSave, onCancel, loading, styles })
               >
                 <option value="user">ผู้ใช้</option>
                 <option value="admin">แอดมิน</option>
-                <option value="superuser">ซุปเปอร์แอดมิน</option>
+                <option value="superuser">ซุปเปอร์ยูสเซอร์</option>
               </select>
             </div>
           )}
 
           <div style={styles.formGroup}>
-            <label style={styles.label}>จำกัดการแปลงต่อวัน:</label>
-            <input
-              type="number"
-              value={formData.daily_conversion_limit}
-              onChange={(e) => setFormData({...formData, daily_conversion_limit: parseInt(e.target.value)})}
-              style={styles.input}
-              min="1"
-              max="1000"
-            />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={{...styles.label, display: 'flex', alignItems: 'center', gap: '8px'}}>
-              <input
-                type="checkbox"
-                checked={formData.is_active}
-                onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
-                disabled={user.id === currentUser?.id} // ไม่ให้ระงับบัญชีตัวเอง
-              />
-              เปิดใช้งานบัญชี
-              {user.id === currentUser?.id && (
-                <span style={{ fontSize: '12px', color: '#ffd700', marginLeft: '8px' }}>
-                  (ไม่สามารถระงับบัญชีตัวเองได้)
+              <label style={styles.label}>สถานะบัญชี:</label>
+              <div style={toggleStyles.toggleContainer}>
+                <div
+                  style={toggleStyles.toggleSwitch}
+                  onClick={() => {
+                    if (user.id !== currentUser?.id) {
+                      setFormData({...formData, is_active: !formData.is_active});
+                    }
+                  }}
+                >
+                  <div style={toggleStyles.toggleHandle}></div>
+                </div>
+                <span style={toggleStyles.toggleLabel}>
+                  {formData.is_active ? '🟢 เปิดใช้งาน' : '🔴 ระงับบัญชี'}
                 </span>
-              )}
-            </label>
+                {user.id === currentUser?.id && (
+                  <span style={toggleStyles.warningText}>
+                    (ไม่สามารถระงับบัญชีตัวเองได้)
+                  </span>
+                )}
+              </div>
           </div>
 
           <div style={styles.modalButtons}>

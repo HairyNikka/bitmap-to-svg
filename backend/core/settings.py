@@ -159,7 +159,7 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
-    'x-guest-id',  # ✅ เพิ่มสำหรับ Guest ID
+    'x-guest-id',  
 ]
 
 # ✅ อนุญาต credentials
@@ -170,3 +170,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
+
+# Session settings สำหรับ password reset
+SESSION_COOKIE_AGE = 3600  # 1 ชั่วโมง (3600 วินาที)
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False

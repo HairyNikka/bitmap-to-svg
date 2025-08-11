@@ -152,7 +152,9 @@ const handleExportCSV = async () => {
     { value: 'admin_delete_user', label: '🗑️ ลบผู้ใช้' },
     { value: 'admin_edit_user', label: '✏️ แก้ไขข้อมูลผู้ใช้' },
     { value: 'admin_promote_user', label: '⬆️ เลื่อนตำแหน่งผู้ใช้' },
-    { value: 'admin_view_logs', label: '👁️ ดูบันทึกการใช้งาน' }
+    { value: 'admin_view_logs', label: '👁️ ดูบันทึกการใช้งาน' },
+    { value: 'password_reset', label: '🔑 เปลี่ยนรหัสผ่าน' },
+    { value: 'security_questions_verified', label: '🛡️ ยืนยันคำถามความปลอดภัย' }
   ];
 
   const dateOptions = [
@@ -179,7 +181,9 @@ const handleExportCSV = async () => {
       'admin_delete_user': '🗑️',
       'admin_edit_user': '✏️',
       'admin_promote_user': '⬆️',
-      'admin_view_logs': '👁️'
+      'admin_view_logs': '👁️',
+      'password_reset': '🔑',
+      'security_questions_verified': '🛡️'
     };
     return iconMap[action] || '📋';
   };
@@ -191,10 +195,22 @@ const handleExportCSV = async () => {
     if (action === 'login') return '#17a2b8'; // Login - ฟ้า
     if (action === 'logout') return '#6c757d'; // Logout - เทา
     if (action === 'register') return '#ffc107'; // Register - เหลือง
+    if (action === 'password_reset') return '#dc3545'; // แดง - สำคัญ
+    if (action === 'security_questions_verified') return '#926d00ff'; // เหลือง - การยืนยัน
     return '#6c757d'; // Default - เทา
   };
 
-  const formatDetails = (details) => {
+  const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+  const formatDetails = (details, action) => {
     if (!details) return '-';
     
     try {
@@ -203,11 +219,16 @@ const handleExportCSV = async () => {
       }
       
       const detailStrings = [];
+      
       if (details.filename) detailStrings.push(`ไฟล์: ${details.filename}`);
-      if (details.file_size) detailStrings.push(`ขนาด: ${details.file_size} bytes`);
+      
+      if (details.file_size) {
+        const formattedSize = formatFileSize(details.file_size);
+        detailStrings.push(`ขนาด: ${formattedSize}`);
+      }
+      
       if (details.export_format) detailStrings.push(`รูปแบบ: ${details.export_format.toUpperCase()}`);
       
-      // ปรับการแสดงผล login method ให้เข้าใจง่ายขึ้น
       if (details.login_method) {
         const methodDisplay = details.login_method === 'JWT' ? 'ผ่านระบบปกติ' : details.login_method;
         detailStrings.push(`วิธี: ${methodDisplay}`);
@@ -218,10 +239,22 @@ const handleExportCSV = async () => {
         detailStrings.push(`วิธี: ${logoutDisplay}`);
       }
       
+      
       if (details.remaining_conversions !== undefined) {
+      const vectorExportActions = ['export_svg', 'export_eps', 'export_pdf'];
+      if (vectorExportActions.includes(action)) {
         detailStrings.push(`เหลือ: ${details.remaining_conversions} ครั้ง`);
+        }
       }
       
+      if (details.method === 'security_questions') {
+        detailStrings.push('ผ่านคำถามความปลอดภัย');
+      }
+      
+      if (details.reset_initiated) {
+        detailStrings.push('เริ่มกระบวนการรีเซ็ต');
+      }
+
       return detailStrings.length > 0 ? detailStrings.join(', ') : '-';
     } catch (e) {
       return details.toString();
@@ -299,13 +332,14 @@ const handleExportCSV = async () => {
     customDateContainer: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
-      gap: '10px'
+      gap: '10px',
+      marginBottom: '15px' 
     },
-    // 🆕 Button Container
     buttonContainer: {
       display: 'flex',
       gap: '10px',
-      alignItems: 'center'
+      alignItems: 'center',
+      marginTop: '10px'  
     },
     clearButton: {
       padding: '10px 20px',
@@ -645,7 +679,7 @@ const handleExportCSV = async () => {
                     </td>
                     <td style={styles.td}>
                       <div style={styles.detailsCell}>
-                        {formatDetails(log.details)}
+                        {formatDetails(log.details, log.action)}
                       </div>
                     </td>
                   </tr>

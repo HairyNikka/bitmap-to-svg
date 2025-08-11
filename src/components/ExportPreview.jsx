@@ -177,24 +177,14 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
   const handleDownload = async (type) => {
     setLoadingType(type);
     try {
-      // 🎯 PNG ไม่ต้องตรวจสอบ limit
-      if (type !== 'png') {
-        const exportResult = await logExport(type);
-        
-        if (!exportResult.success) {
-          return; // หยุดถ้าเกิน limit
-        }
-      }
-
       let blob;
-      if (type === 'pdf' || type === 'eps') {
-        const res = await fetch(`http://localhost:8000/convert-${type}/`, {
-          method: 'POST',
-          body: new Blob([svg], { type: 'image/svg+xml' }),
-          headers: { 'Content-Type': 'image/svg+xml' },
-        });
-        blob = await res.blob();
-      } else if (type === 'png') {
+      
+      // 🆕 ✅ ทุกประเภทไฟล์ต้องเรียก logExport (รวม PNG)
+      if (type === 'png') {
+        // PNG - เรียก logExport แต่ไม่ตรวจสอบ limit
+        await logExport(type); // บันทึก log เฉยๆ ไม่เช็ค success
+        
+        // สร้าง PNG blob
         const img = new Image();
         img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
         await new Promise((resolve) => (img.onload = resolve));
@@ -205,11 +195,29 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
         ctx.drawImage(img, 0, 0);
         const dataUrl = canvas.toDataURL('image/png');
         blob = await (await fetch(dataUrl)).blob();
-      } else if (type === 'svg') {
-        // ✅ เพิ่มการจัดการ SVG
-        blob = new Blob([svg], { type: 'image/svg+xml' });
+        
+      } else {
+        // SVG/PDF/EPS - เช็ค limit ก่อนส่งออก
+        const exportResult = await logExport(type);
+        
+        if (!exportResult.success) {
+          return; // หยุดถ้าเกิน limit
+        }
+        
+        // สร้าง blob ตามประเภทไฟล์
+        if (type === 'pdf' || type === 'eps') {
+          const res = await fetch(`http://localhost:8000/convert-${type}/`, {
+            method: 'POST',
+            body: new Blob([svg], { type: 'image/svg+xml' }),
+            headers: { 'Content-Type': 'image/svg+xml' },
+          });
+          blob = await res.blob();
+        } else if (type === 'svg') {
+          blob = new Blob([svg], { type: 'image/svg+xml' });
+        }
       }
 
+      // ดาวน์โหลดไฟล์
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;

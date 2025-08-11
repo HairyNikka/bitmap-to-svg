@@ -130,15 +130,21 @@ def cleanup_old_guest_sessions():
     return deleted_count
 
 # Helper function สำหรับ logging
-def format_export_details(export_format, filename, guest_id=None):
+def format_export_details(export_format, filename, guest_id=None, file_size=None):
     """จัดรูปแบบ details สำหรับ export logging"""
     details = {
-        'export_format': export_format,
-        'original_filename': filename or 'unknown'
+        'export_format': export_format.upper(),  # SVG, PDF, EPS, PNG
+        'filename': filename or 'converted'      # ใช้ filename แทน original_filename
     }
     
+    # เพิ่ม file_size ถ้ามี
+    if file_size:
+        details['file_size'] = file_size
+    
+    # เพิ่มข้อมูล guest ถ้ามี
     if guest_id:
         details['guest_id'] = guest_id
         details['user_type'] = 'guest'
     
+    # ✅ ต้อง return dict เสมอ (ไม่ใช่ string!)
     return details

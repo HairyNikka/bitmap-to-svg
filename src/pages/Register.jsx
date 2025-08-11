@@ -1,7 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faUser, 
+  faEnvelope, 
+  faLock, 
+  faEye, 
+  faEyeSlash,
+  faUserPlus,
+  faCheck,
+  faExclamation,
+  faShield
+} from '@fortawesome/free-solid-svg-icons';
+import SecurityQuestionsSetup from '../pages/SecurityQuestionsSetup';
 
 export default function Register() {
+  // Basic form states
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -10,18 +24,71 @@ export default function Register() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Enhanced states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [securityQuestions, setSecurityQuestions] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({}); // เพิ่ม state เช็คว่าผู้ใช้แตะ field แล้วหรือยัง
+
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    
-    if (password !== confirmPassword) {
-      setError('รหัสผ่านไม่ตรงกัน');
-      return;
+  // useEffect สำหรับ auto-validation เมื่อ state เปลี่ยน (แต่เฉพาะที่ผู้ใช้แตะแล้ว)
+  useEffect(() => {
+    // ตรวจสอบเฉพาะ field ที่ผู้ใช้แตะแล้ว
+    if (Object.keys(touched).length > 0) {
+      validateBasicForm();
+    }
+  }, [username, email, password, confirmPassword, touched]);
+
+  // Real-time validation
+  const validateBasicForm = () => {
+    const newErrors = {};
+
+    // Debug logging
+    console.log('Password:', password);
+    console.log('Confirm Password:', confirmPassword);
+    console.log('Password length:', password.length);
+    console.log('Are passwords equal?', password === confirmPassword);
+
+    // ตรวจสอบเฉพาะ field ที่ผู้ใช้แตะแล้ว
+    if (touched.username && username.length < 3) {
+      newErrors.username = 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร';
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (touched.email && !emailRegex.test(email)) {
+      newErrors.email = 'รูปแบบอีเมลไม่ถูกต้อง';
+    }
+
+    if (touched.password && password.length < 8) {
+      newErrors.password = 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร';
+    }
+
+    if (touched.confirmPassword && password !== confirmPassword) {
+      newErrors.confirmPassword = 'รหัสผ่านไม่ตรงกัน';
+    }
+
+    console.log('New Errors:', newErrors);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNextStep = () => {
+    if (validateBasicForm()) {
+      setCurrentStep(2);
+    }
+  };
+
+  const handleSecurityQuestionsComplete = (questionsData) => {
+    setSecurityQuestions(questionsData);
+    handleFinalSubmit(questionsData);
+  };
+
+  const handleFinalSubmit = async (questionsData) => {
+    setError('');
+    setSuccess('');
     setLoading(true);
 
     try {
@@ -32,7 +99,8 @@ export default function Register() {
           username, 
           email, 
           password, 
-          confirm_password: confirmPassword 
+          confirm_password: confirmPassword,
+          ...questionsData
         }),
       });
 
@@ -58,107 +126,37 @@ export default function Register() {
         } else {
           setError('เกิดข้อผิดพลาดในการสมัครสมาชิก');
         }
+        setCurrentStep(1);
       }
     } catch (err) {
       setError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง');
       console.error('Register error:', err);
+      setCurrentStep(1);
     } finally {
       setLoading(false);
     }
   };
 
-  const styles = {
-    container: {
-      minHeight: '100vh',
-      backgroundColor: '#1a1a1a',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: '20px'
-    },
-    card: {
-      backgroundColor: '#2a2a2a',
-      borderRadius: '12px',
-      padding: '40px',
-      width: '100%',
-      maxWidth: '400px',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
-    },
-    title: {
-      color: '#ffffff',
-      fontSize: '24px',
-      fontWeight: '600',
-      textAlign: 'center',
-      marginBottom: '30px'
-    },
-    inputGroup: {
-      marginBottom: '20px'
-    },
-    input: {
-      width: '100%',
-      padding: '12px 16px',
-      backgroundColor: '#3a3a3a',
-      border: '1px solid #4a4a4a',
-      borderRadius: '8px',
-      color: '#ffffff',
-      fontSize: '16px',
-      outline: 'none',
-      transition: 'border-color 0.3s ease',
-      boxSizing: 'border-box'
-    },
-    button: {
-      width: '100%',
-      padding: '12px',
-      backgroundColor: loading || success ? '#495057' : '#28a745',
-      color: '#ffffff',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '600',
-      cursor: (loading || success) ? 'not-allowed' : 'pointer',
-      transition: 'background-color 0.3s ease',
-      marginTop: '10px'
-    },
-    successAlert: {
-      backgroundColor: '#28a745',
-      color: '#ffffff',
-      borderRadius: '8px',
-      padding: '12px',
-      marginBottom: '20px',
-      fontSize: '14px',
-      textAlign: 'center'
-    },
-    errorAlert: {
-      backgroundColor: '#dc3545',
-      color: '#ffffff',
-      borderRadius: '8px',
-      padding: '12px',
-      marginBottom: '20px',
-      fontSize: '14px',
-      textAlign: 'center'
-    },
-    linksContainer: {
-      marginTop: '25px',
-      textAlign: 'center'
-    },
-    link: {
-      color: '#007bff',
-      textDecoration: 'none',
-      fontSize: '14px'
-    },
-    homeLink: {
-      position: 'absolute',
-      top: '20px',
-      left: '20px',
-      color: '#a0a0a0',
-      textDecoration: 'none',
-      fontSize: '14px',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px'
-    }
+  const handleSecurityQuestionsSkip = () => {
+    // สำหรับกรณีที่อนุญาตให้ข้าม (ถ้า backend รองรับ)
+    handleFinalSubmit({});
   };
+
+
+
+  if (success) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <div style={styles.successContainer}>
+            <FontAwesomeIcon icon={faCheck} style={styles.successIcon} />
+            <h2 style={styles.successTitle}>สมัครสมาชิกสำเร็จ!</h2>
+            <p style={styles.successText}>{success}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>
@@ -167,132 +165,448 @@ export default function Register() {
       </Link>
 
       <div style={styles.card}>
-        <h1 style={styles.title}>สมัครสมาชิก</h1>
-
-        {success && (
-          <div style={styles.successAlert}>
-            ✅ {success}
+        {/* Progress Steps */}
+        <div style={styles.progressContainer}>
+          <div style={styles.progressBar}>
+            <div 
+              style={{
+                ...styles.progressFill,
+                width: `${(currentStep / 2) * 100}%`
+              }}
+            />
           </div>
-        )}
-        
+          <div style={styles.stepLabels}>
+            <span style={{
+              ...styles.stepLabel,
+              ...(currentStep >= 1 && styles.stepLabelActive)
+            }}>
+              ข้อมูลบัญชี
+            </span>
+            <span style={{
+              ...styles.stepLabel,
+              ...(currentStep >= 2 && styles.stepLabelActive)
+            }}>
+              คำถามความปลอดภัย
+            </span>
+          </div>
+        </div>
+
+        <h1 style={styles.title}>
+          <FontAwesomeIcon icon={faUserPlus} style={styles.titleIcon} />
+          สมัครสมาชิก
+        </h1>
+
         {error && (
           <div style={styles.errorAlert}>
-            ❌ {error}
+            <FontAwesomeIcon icon={faExclamation} style={styles.alertIcon} />
+            {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div style={styles.inputGroup}>
-            <input
-              type="text"
-              placeholder="ชื่อผู้ใช้"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              disabled={loading || success}
+        {currentStep === 1 ? (
+          <form onSubmit={(e) => { e.preventDefault(); handleNextStep(); }}>
+            {/* Username Field */}
+            <div style={styles.inputGroup}>
+              <div style={styles.inputContainer}>
+                <FontAwesomeIcon icon={faUser} style={styles.inputIcon} />
+                <input
+                  type="text"
+                  placeholder="ชื่อผู้ใช้"
+                  value={username}
+                  onFocus={() => setTouched(prev => ({...prev, username: true}))}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    // เอา validateBasicForm() ออก - ให้ useEffect จัดการ
+                  }}
+                  required
+                  disabled={loading}
+                  style={{
+                    ...styles.input,
+                    ...(errors.username && styles.inputError),
+                    ...(loading && { opacity: 0.7 })
+                  }}
+                />
+              </div>
+              {errors.username && (
+                <div style={styles.errorText}>
+                  <FontAwesomeIcon icon={faExclamation} style={styles.errorIcon} />
+                  {errors.username}
+                </div>
+              )}
+            </div>
+
+            {/* Email Field */}
+            <div style={styles.inputGroup}>
+              <div style={styles.inputContainer}>
+                <FontAwesomeIcon icon={faEnvelope} style={styles.inputIcon} />
+                <input
+                  type="email"
+                  placeholder="อีเมล"
+                  value={email}
+                  onFocus={() => setTouched(prev => ({...prev, email: true}))}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    // เอา validateBasicForm() ออก - ให้ useEffect จัดการ
+                  }}
+                  required
+                  disabled={loading}
+                  style={{
+                    ...styles.input,
+                    ...(errors.email && styles.inputError),
+                    ...(loading && { opacity: 0.7 })
+                  }}
+                />
+              </div>
+              {errors.email && (
+                <div style={styles.errorText}>
+                  <FontAwesomeIcon icon={faExclamation} style={styles.errorIcon} />
+                  {errors.email}
+                </div>
+              )}
+            </div>
+
+            {/* Password Field */}
+            <div style={styles.inputGroup}>
+              <div style={styles.inputContainer}>
+                <FontAwesomeIcon icon={faLock} style={styles.inputIcon} />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)"
+                  value={password}
+                  onFocus={() => setTouched(prev => ({...prev, password: true}))}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    // เอา setTimeout ออก - ให้ useEffect จัดการ
+                  }}
+                  required
+                  disabled={loading}
+                  minLength="8"
+                  style={{
+                    ...styles.input,
+                    ...(errors.password && styles.inputError),
+                    ...(loading && { opacity: 0.7 })
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={styles.eyeButton}
+                  disabled={loading}
+                >
+                  <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                </button>
+              </div>
+
+              
+              {errors.password && (
+                <div style={styles.errorText}>
+                  <FontAwesomeIcon icon={faExclamation} style={styles.errorIcon} />
+                  {errors.password}
+                </div>
+              )}
+            </div>
+
+            {/* Confirm Password Field */}
+            <div style={styles.inputGroup}>
+              <div style={styles.inputContainer}>
+                <FontAwesomeIcon icon={faLock} style={styles.inputIcon} />
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="ยืนยันรหัสผ่าน"
+                  value={confirmPassword}
+                  onFocus={() => setTouched(prev => ({...prev, confirmPassword: true}))}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    // เอา setTimeout ออก - ให้ useEffect จัดการ
+                  }}
+                  required
+                  disabled={loading}
+                  style={{
+                    ...styles.input,
+                    ...(errors.confirmPassword && styles.inputError),
+                    ...(loading && { opacity: 0.7 })
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={styles.eyeButton}
+                  disabled={loading}
+                >
+                  <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <div style={styles.errorText}>
+                  <FontAwesomeIcon icon={faExclamation} style={styles.errorIcon} />
+                  {errors.confirmPassword}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || Object.keys(errors).length > 0 || !username || !email || !password || !confirmPassword}
               style={{
-                ...styles.input,
-                ...((loading || success) && { opacity: 0.7 })
+                ...styles.button,
+                ...(Object.keys(errors).length === 0 && username && email && password && confirmPassword ? styles.buttonActive : styles.buttonDisabled)
               }}
-              onFocus={(e) => e.target.style.borderColor = '#007bff'}
-              onBlur={(e) => e.target.style.borderColor = '#4a4a4a'}
-            />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <input
-              type="email"
-              placeholder="อีเมล"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={loading || success}
-              style={{
-                ...styles.input,
-                ...((loading || success) && { opacity: 0.7 })
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#007bff'}
-              onBlur={(e) => e.target.style.borderColor = '#4a4a4a'}
-            />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <input
-              type="password"
-              placeholder="รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading || success}
-              minLength="8"
-              style={{
-                ...styles.input,
-                ...((loading || success) && { opacity: 0.7 })
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#007bff'}
-              onBlur={(e) => e.target.style.borderColor = '#4a4a4a'}
-            />
-          </div>
-
-          <div style={styles.inputGroup}>
-            <input
-              type="password"
-              placeholder="ยืนยันรหัสผ่าน"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              disabled={loading || success}
-              style={{
-                ...styles.input,
-                ...((loading || success) && { opacity: 0.7 }),
-                ...(confirmPassword && password !== confirmPassword && {
-                  borderColor: '#dc3545'
-                })
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#007bff'}
-              onBlur={(e) => {
-                if (confirmPassword && password !== confirmPassword) {
-                  e.target.style.borderColor = '#dc3545';
-                } else {
-                  e.target.style.borderColor = '#4a4a4a';
-                }
-              }}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading || success}
-            style={styles.button}
-            onMouseEnter={(e) => {
-              if (!loading && !success) {
-                e.target.style.backgroundColor = '#218838';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!loading && !success) {
-                e.target.style.backgroundColor = '#28a745';
-              }
-            }}
-          >
-            {loading ? "กำลังสมัคร..." : success ? "สมัครเสร็จแล้ว" : "สมัครสมาชิก"}
-          </button>
-        </form>
-
-        <div style={styles.linksContainer}>
-          <p style={{ color: '#a0a0a0', margin: '0 0 8px 0', fontSize: '14px' }}>
-            มีบัญชีอยู่แล้ว?{' '}
-            <Link 
-              to="/login" 
-              style={styles.link}
-              onMouseEnter={(e) => e.target.style.color = '#66b3ff'}
-              onMouseLeave={(e) => e.target.style.color = '#007bff'}
             >
-              เข้าสู่ระบบ
-            </Link>
-          </p>
-        </div>
+              <FontAwesomeIcon icon={faShield} style={styles.buttonIcon} />
+              ต่อไป - ตั้งคำถามความปลอดภัย
+            </button>
+          </form>
+        ) : (
+          <SecurityQuestionsSetup
+            onComplete={handleSecurityQuestionsComplete}
+            onSkip={handleSecurityQuestionsSkip}
+          />
+        )}
+
+        {currentStep === 1 && (
+          <div style={styles.linksContainer}>
+            <p style={{ color: '#a0a0a0', margin: '0 0 8px 0', fontSize: '14px' }}>
+              มีบัญชีอยู่แล้ว?{' '}
+              <Link 
+                to="/login" 
+                style={styles.link}
+                onMouseEnter={(e) => e.target.style.color = '#66b3ff'}
+                onMouseLeave={(e) => e.target.style.color = '#007bff'}
+              >
+                เข้าสู่ระบบ
+              </Link>
+            </p>
+          </div>
+        )}
+
+        {currentStep === 2 && (
+          <div style={styles.backButtonContainer}>
+            <button
+              onClick={() => setCurrentStep(1)}
+              style={styles.backButton}
+              disabled={loading}
+            >
+              กลับไปแก้ไขข้อมูลบัญชี
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+const styles = {
+  container: {
+    minHeight: '100vh',
+    backgroundColor: '#1a1a1a',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '20px'
+  },
+  card: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: '12px',
+    padding: '40px',
+    width: '100%',
+    maxWidth: '500px',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+    border: '1px solid #3a3a3a'
+  },
+  progressContainer: {
+    marginBottom: '30px'
+  },
+  progressBar: {
+    width: '100%',
+    height: '4px',
+    backgroundColor: '#3a3a3a',
+    borderRadius: '2px',
+    overflow: 'hidden',
+    marginBottom: '12px'
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#4ade80',
+    transition: 'width 0.3s ease'
+  },
+  stepLabels: {
+    display: 'flex',
+    justifyContent: 'space-between'
+  },
+  stepLabel: {
+    fontSize: '12px',
+    color: '#6c757d',
+    fontWeight: '500'
+  },
+  stepLabelActive: {
+    color: '#4ade80'
+  },
+  title: {
+    color: '#ffffff',
+    fontSize: '24px',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: '30px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '12px'
+  },
+  titleIcon: {
+    color: '#4ade80'
+  },
+  successContainer: {
+    textAlign: 'center',
+    padding: '20px'
+  },
+  successIcon: {
+    fontSize: '48px',
+    color: '#4ade80',
+    marginBottom: '16px'
+  },
+  successTitle: {
+    color: '#ffffff',
+    fontSize: '24px',
+    fontWeight: '600',
+    marginBottom: '12px'
+  },
+  successText: {
+    color: '#a0a0a0',
+    fontSize: '16px'
+  },
+  inputGroup: {
+    marginBottom: '20px'
+  },
+  inputContainer: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center'
+  },
+  inputIcon: {
+    position: 'absolute',
+    left: '12px',
+    color: '#6c757d',
+    fontSize: '14px',
+    zIndex: 1
+  },
+  input: {
+    width: '100%',
+    padding: '12px 16px 12px 40px',
+    backgroundColor: '#3a3a3a',
+    borderWidth: '2px',
+    borderStyle: 'solid',
+    borderColor: '#3a3a3a',
+    borderRadius: '8px',
+    color: '#ffffff',
+    fontSize: '16px',
+    outline: 'none',
+    transition: 'border-color 0.2s ease',
+    boxSizing: 'border-box'
+  },
+  inputError: {
+    borderColor: '#ef4444'
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: '12px',
+    background: 'none',
+    border: 'none',
+    color: '#6c757d',
+    cursor: 'pointer',
+    padding: '4px',
+    fontSize: '14px',
+    transition: 'color 0.2s ease'
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    marginTop: '6px'
+  },
+  errorIcon: {
+    fontSize: '10px'
+  },
+
+  button: {
+    width: '100%',
+    padding: '12px',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    marginTop: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px'
+  },
+  buttonActive: {
+    backgroundColor: '#4ade80',
+    color: '#000000'
+  },
+  buttonDisabled: {
+    backgroundColor: '#4a4a4a',
+    color: '#9ca3af',
+    cursor: 'not-allowed'
+  },
+  buttonIcon: {
+    fontSize: '14px'
+  },
+  errorAlert: {
+    backgroundColor: '#ef4444',
+    color: '#ffffff',
+    borderRadius: '8px',
+    padding: '12px',
+    marginBottom: '20px',
+    fontSize: '14px',
+    textAlign: 'center',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px'
+  },
+  alertIcon: {
+    fontSize: '14px'
+  },
+  linksContainer: {
+    marginTop: '25px',
+    textAlign: 'center'
+  },
+  link: {
+    color: '#007bff',
+    textDecoration: 'none',
+    fontSize: '14px',
+    transition: 'color 0.2s ease'
+  },
+  backButtonContainer: {
+    marginTop: '20px',
+    textAlign: 'center'
+  },
+  backButton: {
+    padding: '10px 16px',
+    backgroundColor: 'transparent',
+    border: '1px solid #6c757d',
+    borderRadius: '8px',
+    color: '#6c757d',
+    fontSize: '14px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+  homeLink: {
+    position: 'absolute',
+    top: '20px',
+    left: '20px',
+    color: '#a0a0a0',
+    textDecoration: 'none',
+    fontSize: '14px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    transition: 'color 0.2s ease'
+  }
+};

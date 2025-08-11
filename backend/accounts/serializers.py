@@ -22,9 +22,17 @@ class RegisterSerializer(serializers.ModelSerializer):
     )
     confirm_password = serializers.CharField(write_only=True, required=True)
 
+    # เพิ่ม Security Questions Fields
+    security_question_1 = serializers.CharField(required=False, allow_blank=True)
+    security_answer_1 = serializers.CharField(required=False, allow_blank=True)
+    security_question_2 = serializers.CharField(required=False, allow_blank=True)
+    security_answer_2 = serializers.CharField(required=False, allow_blank=True)
+
     class Meta:
         model = User
-        fields = ('username', 'email', 'password', 'confirm_password')
+        fields = ('username', 'email', 'password', 'confirm_password',
+                 'security_question_1', 'security_answer_1',  
+                 'security_question_2', 'security_answer_2')
 
     def validate(self, data):
         if data['password'] != data['confirm_password']:
@@ -33,11 +41,24 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('confirm_password')
+        # แยก security questions ออกมา
+        security_question_1 = validated_data.pop('security_question_1', '')
+        security_answer_1 = validated_data.pop('security_answer_1', '')
+        security_question_2 = validated_data.pop('security_question_2', '')
+        security_answer_2 = validated_data.pop('security_answer_2', '')
+
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password']
         )
+                # 🔐 ตั้งคำถามความปลอดภัยถ้ามี
+        if security_question_1 and security_answer_1 and security_question_2 and security_answer_2:
+            user.set_security_questions(
+                security_question_1, security_answer_1,
+                security_question_2, security_answer_2
+            )
+            
         return user
 
 # 📋 Serializer สำหรับ UserActivityLog

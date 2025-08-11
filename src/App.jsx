@@ -6,10 +6,16 @@ import Login from './pages/Login';
 import Home from './components/Home';
 import Navbar from './components/Navbar';
 
+// 🔐 เพิ่ม Security Reset Components
+import ForgotPassword from './pages/ForgotPassword';
+import SecurityQuestions from './pages/SecurityQuestions';
+import ResetPassword from './pages/ResetPassword';
+import PasswordResetFlow from './pages/PasswordResetFlow'; // Wrapper component
+
 // 🔧 เพิ่ม Admin Components
 import AdminDashboard from './admin/pages/AdminDashboard';
 import UserManagement from './admin/pages/UserManagement';
-import ActivityLogs from './admin/pages/ActivityLogs'; // ✅ เพิ่ม import ActivityLogs
+import ActivityLogs from './admin/pages/ActivityLogs';
 
 // 🔒 Protected Route Component สำหรับ Admin
 function ProtectedAdminRoute({ children }) {
@@ -94,12 +100,28 @@ function ProtectedAdminRoute({ children }) {
 function AppRoutes({ isAuthenticated, setIsAuthenticated, username, setUsername, handleLogout }) {
   const location = useLocation();
   
-  // 🔧 เพิ่ม admin routes ใน hideNavbar เพื่อไม่แสดง Navbar ปกติ
-  const hideNavbar = ['/login', '/register', '/admin', '/admin/users', '/admin/logs'].includes(location.pathname);
+  // 🔧 เพิ่ม security reset routes ใน hideNavbar
+  const hideNavbar = [
+    '/login', 
+    '/register', 
+    '/forgot-password',
+    '/reset-password',
+    '/admin', 
+    '/admin/users', 
+    '/admin/logs'
+  ].includes(location.pathname);
 
   // 🎨 Reset body styles สำหรับหน้าที่ไม่ต้องการ flex centering
   React.useEffect(() => {
-    const needsFlexReset = ['/login', '/register', '/admin', '/admin/users', '/admin/logs'].includes(location.pathname);
+    const needsFlexReset = [
+      '/login', 
+      '/register', 
+      '/forgot-password',
+      '/reset-password',
+      '/admin', 
+      '/admin/users', 
+      '/admin/logs'
+    ].includes(location.pathname);
     
     if (needsFlexReset) {
       // Reset body styles
@@ -133,7 +155,11 @@ function AppRoutes({ isAuthenticated, setIsAuthenticated, username, setUsername,
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} setUsername={setUsername} />} />
         
-        {/* 🔧 เพิ่ม Admin Routes */}
+        {/* 🔐 Security Reset Routes */}
+        <Route path="/forgot-password" element={<PasswordResetFlow />} />
+        <Route path="/reset-password" element={<PasswordResetFlow />} />
+        
+        {/* 🔧 Admin Routes */}
         <Route path="/admin" element={
           <ProtectedAdminRoute>
             <AdminDashboard />
@@ -146,7 +172,6 @@ function AppRoutes({ isAuthenticated, setIsAuthenticated, username, setUsername,
           </ProtectedAdminRoute>
         } />
 
-        {/* ✅ เพิ่ม ActivityLogs Route */}
         <Route path="/admin/logs" element={
           <ProtectedAdminRoute>
             <ActivityLogs />

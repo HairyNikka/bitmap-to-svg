@@ -2,7 +2,8 @@ from django.urls import path
 from .views import (
     RegisterView, UserView, login_view, logout_view, 
     user_activity_logs, CustomTokenObtainPairView, jwt_logout_view,
-    log_conversion, log_export, log_upload, get_export_limits
+    log_conversion, log_export, log_upload, get_export_limits,
+    forgot_password, verify_security_answers, reset_password, get_security_questions
 )
 from .admin_views import (
     admin_dashboard_stats, admin_users_list, admin_user_detail, admin_activity_logs
@@ -21,6 +22,12 @@ urlpatterns = [
     path('login/', login_view, name='session_login'),  # Session Login
     path('logout/', logout_view, name='logout'),       # Session Logout
     
+    # 🔐 Password Reset with Security Questions
+    path('forgot-password/', forgot_password, name='forgot_password'),
+    path('verify-security-answers/', verify_security_answers, name='verify_security_answers'),
+    path('reset-password/', reset_password, name='reset_password'),
+    path('security-questions/', get_security_questions, name='get_security_questions'),
+
     # Activity logs
     path('logs/', user_activity_logs, name='user_logs'),  # ดู activity logs
     

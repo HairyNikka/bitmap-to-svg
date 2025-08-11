@@ -208,7 +208,7 @@ export default function AdminDashboard() {
     const typeMap = {
       'user': 'ผู้ใช้ทั่วไป',
       'admin': 'แอดมิน',
-      'superuser': 'ซุปเปอร์แอดมิน'
+      'superuser': 'ซุปเปอร์ยูสเซอร์'
     };
     return typeMap[type] || type;
   };

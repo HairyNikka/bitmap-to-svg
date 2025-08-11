@@ -1,6 +1,17 @@
-// ✅ Navbar ใช้ fixed ให้อยู่ติดด้านบนเสมอ พร้อม paddingTop ในเนื้อหาอื่นรองรับ
+// 🖤 Clean Dark Theme Navbar - เรียบๆ ไม่มี effects ฟุ้งๆ
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faImage, 
+  faUser, 
+  faUserShield, 
+  faUserTie, 
+  faCog, 
+  faSignOutAlt, 
+  faSignInAlt,
+  faSpinner
+} from '@fortawesome/free-solid-svg-icons';
 import axios from "axios";
 
 export default function Navbar() {
@@ -21,18 +32,15 @@ export default function Navbar() {
       return;
     }
 
-    // ถ้ามีข้อมูล user ใน localStorage ให้ใช้ก่อน (แต่ยังต้องอัพเดท)
     if (storedUserData) {
       try {
         const parsed = JSON.parse(storedUserData);
-        console.log("Stored user data:", parsed); // 🔍 Debug log
         setUserData(parsed);
       } catch (e) {
         console.error("Error parsing user data:", e);
       }
     }
 
-    // ดึงข้อมูล user ล่าสุดจาก API (บังคับให้เรียกทุกครั้ง)
     try {
       const res = await axios.get("http://localhost:8000/api/accounts/user/", {
         headers: {
@@ -40,13 +48,11 @@ export default function Navbar() {
         },
       });
       
-      console.log("Fresh user data from API:", res.data); // 🔍 Debug log
       setUserData(res.data);
       localStorage.setItem("userData", JSON.stringify(res.data));
     } catch (error) {
       console.error("Auth check failed:", error);
       
-      // ถ้า token หมดอายุหรือไม่ถูกต้อง
       if (error.response?.status === 401) {
         handleLogout();
       }
@@ -58,7 +64,6 @@ export default function Navbar() {
   const handleLogout = async () => {
     const token = localStorage.getItem("accessToken");
     
-    // ✅ เรียก API logout พร้อม logging
     if (token) {
       try {
         await axios.post("http://localhost:8000/api/accounts/token/logout/", {}, {
@@ -68,147 +73,232 @@ export default function Navbar() {
         });
       } catch (error) {
         console.error("Logout API failed:", error);
-        // ไม่เป็นไร ถึงแม้ API จะ fail ก็ยัง logout ได้
       }
     }
 
-    // ✅ ลบข้อมูลทั้งหมดออกจาก localStorage
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("userData");
     setUserData(null);
-    
-    // ✅ รีเฟรชหน้าหลัง logout
     window.location.reload();
   };
 
-  // ✅ ฟังก์ชันแสดงชื่อผู้ใช้พร้อม role (เพิ่ม debug)
   const getUserDisplayName = () => {
     if (!userData) return null;
-
-    const { username, user_type } = userData;
-    console.log("getUserDisplayName - user_type:", user_type, "username:", username); // 🔍 Debug log
-    
-    switch (user_type) {
-      case 'superuser':
-        return `(Superadmin) ${username}`;
-      case 'admin':
-        return `(Admin) ${username}`;
-      case 'user':
-      default:
-        return username; // ผู้ใช้ทั่วไปไม่แสดง role
-    }
+    return userData.username;
   };
 
-  // ✅ ฟังก์ชันได้สีตาม role (เพิ่ม debug)
-  const getUserRoleColor = () => {
-    if (!userData) return "#fff";
-    
-    console.log("getUserRoleColor - user_type:", userData.user_type); // 🔍 Debug log
+  const getUserIcon = () => {
+    if (!userData) return faUser;
     
     switch (userData.user_type) {
       case 'superuser':
-        return "#ffd700"; // สีทอง
+        return faUserTie; // ใช้ faUserTie แทน faUserCrown
       case 'admin':
-        return "#ff6b6b"; // สีแดงอ่อน
+        return faUserShield;
       case 'user':
       default:
-        return "#fff"; // สีขาว
+        return faUser;
     }
   };
 
-  const styleNavbar = {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    background: "#222",
-    color: "#fff",
-    padding: "10px 20px",
-    position: "fixed", 
-    top: 0,
-    left: 0,
-    width: '100%',
-    boxSizing: 'border-box',
-    zIndex: 1000,
+  const getUserRoleBadge = () => {
+    if (!userData || userData.user_type === 'user') return null;
+    
+    const badgeStyle = {
+      fontSize: '10px',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      padding: '3px 6px',
+      borderRadius: '4px',
+      letterSpacing: '0.5px',
+      marginLeft: '8px'
+    };
+
+    switch (userData.user_type) {
+      case 'superuser':
+        return (
+          <span style={{
+            ...badgeStyle,
+            backgroundColor: '#ffc107',
+            color: '#000'
+          }}>
+            SUPER USER
+          </span>
+        );
+      case 'admin':
+        return (
+          <span style={{
+            ...badgeStyle,
+            backgroundColor: '#dc3545',
+            color: '#fff'
+          }}>
+            ADMIN
+          </span>
+        );
+      default:
+        return null;
+    }
   };
 
-  const userInfoStyle = {
-    display: "flex",
-    alignItems: "center",
-    gap: "15px"
-  };
+  const styles = {
+    navbar: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      backgroundColor: "#1a1a1a",
+      borderBottom: "1px solid #333",
+      color: "#fff",
+      padding: "12px 24px",
+      position: "fixed", 
+      top: 0,
+      left: 0,
+      width: '100%',
+      boxSizing: 'border-box',
+      zIndex: 1000
+    },
 
-  const usernameStyle = {
-    color: getUserRoleColor(),
-    fontWeight: userData?.user_type !== 'user' ? 'bold' : 'normal',
-    fontSize: userData?.user_type !== 'user' ? '14px' : '14px'
-  };
+    brand: {
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      margin: 0,
+      fontSize: "18px",
+      fontWeight: "600",
+      color: "#ffffff"
+    },
 
-  const logoutButtonStyle = {
-    backgroundColor: "#dc3545",
-    color: "white",
-    border: "none",
-    padding: "8px 16px",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontSize: "14px",
-    transition: "background-color 0.3s"
+    brandIcon: {
+      color: "#ffffff",
+      fontSize: "20px"
+    },
+
+    userSection: {
+      display: "flex",
+      alignItems: "center",
+      gap: "16px"
+    },
+
+    userInfo: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      backgroundColor: "#2a2a2a",
+      padding: "8px 12px",
+      borderRadius: "6px",
+      border: "1px solid #404040"
+    },
+
+    userIcon: {
+      color: "#ffffff",
+      fontSize: "16px"
+    },
+
+    username: {
+      fontSize: "14px",
+      fontWeight: "500",
+      color: "#ffffff"
+    },
+
+    adminLink: {
+      color: "#ffffff",
+      textDecoration: "none",
+      fontSize: "14px",
+      fontWeight: "500",
+      backgroundColor: "#28a745",
+      padding: "8px 12px",
+      borderRadius: "6px",
+      display: "flex",
+      alignItems: "center",
+      gap: "6px"
+    },
+
+    logoutButton: {
+      backgroundColor: "#dc3545",
+      color: "#ffffff",
+      border: "none",
+      padding: "8px 12px",
+      borderRadius: "6px",
+      cursor: "pointer",
+      fontSize: "14px",
+      fontWeight: "500",
+      display: "flex",
+      alignItems: "center",
+      gap: "6px"
+    },
+
+    loginButton: {
+      backgroundColor: "#007bff",
+      color: "#ffffff",
+      textDecoration: "none",
+      padding: "8px 16px",
+      borderRadius: "6px",
+      fontSize: "14px",
+      fontWeight: "500",
+      display: "flex",
+      alignItems: "center",
+      gap: "6px"
+    },
+
+    loading: {
+      color: "#cccccc",
+      fontSize: "14px",
+      display: "flex",
+      alignItems: "center",
+      gap: "8px"
+    }
   };
 
   return (
-    <div style={styleNavbar}>
-      <h3 style={{ margin: 0 }}>🖼️ Bitmap to SVG Converter</h3>
+    <nav style={styles.navbar}>
+      {/* Brand Section */}
+      <h3 style={styles.brand}>
+        <FontAwesomeIcon icon={faImage} style={styles.brandIcon} />
+        Bitmap to Vector
+      </h3>
       
-      <div style={userInfoStyle}>
+      {/* User Section */}
+      <div style={styles.userSection}>
         {loading ? (
-          <span style={{ color: "#ccc" }}>กำลังโหลด...</span>
+          <div style={styles.loading}>
+            <FontAwesomeIcon icon={faSpinner} spin />
+            กำลังโหลด...
+          </div>
         ) : userData ? (
           <>
-            <span style={usernameStyle}>
-              👤 {getUserDisplayName()}
-            </span>
+            {/* User Info */}
+            <div style={styles.userInfo}>
+              <FontAwesomeIcon 
+                icon={getUserIcon()} 
+                style={styles.userIcon}
+              />
+              <span style={styles.username}>
+                {getUserDisplayName()}
+              </span>
+              {getUserRoleBadge()}
+            </div>
             
-            {/* ✅ แสดงข้อมูลเพิ่มเติมสำหรับ admin/superuser */}
+            {/* Admin Panel Link */}
             {userData.user_type !== 'user' && (
-              <Link 
-                to="/admin" 
-                style={{ 
-                  color: "#28a745", 
-                  textDecoration: "none",
-                  fontSize: "12px",
-                  backgroundColor: "rgba(40, 167, 69, 0.1)",
-                  padding: "4px 8px",
-                  borderRadius: "3px"
-                }}
-              >
-                🔧 จัดการระบบ
+              <Link to="/admin" style={styles.adminLink}>
+                <FontAwesomeIcon icon={faCog} />
+                จัดการระบบ
               </Link>
             )}
             
-            <button 
-              onClick={handleLogout}
-              style={logoutButtonStyle}
-              onMouseOver={(e) => e.target.style.backgroundColor = "#c82333"}
-              onMouseOut={(e) => e.target.style.backgroundColor = "#dc3545"}
-            >
+            {/* Logout Button */}
+            <button onClick={handleLogout} style={styles.logoutButton}>
+              <FontAwesomeIcon icon={faSignOutAlt} />
               ออกจากระบบ
             </button>
           </>
         ) : (
-          <Link 
-            to="/login" 
-            style={{ 
-              color: "#fff", 
-              textDecoration: "none",
-              backgroundColor: "#007bff",
-              padding: "8px 16px",
-              borderRadius: "4px"
-            }}
-          >
+          <Link to="/login" style={styles.loginButton}>
+            <FontAwesomeIcon icon={faSignInAlt} />
             เข้าสู่ระบบ
           </Link>
         )}
       </div>
-    </div>
+    </nav>
   );
 }

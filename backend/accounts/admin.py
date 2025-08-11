@@ -23,18 +23,25 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = BaseUserAdmin.fieldsets + (
         ('📊 Export Limits (ปัจจุบัน)', {
             'fields': ('user_type', 'daily_export_limit', 'daily_exports_used', 
-                      'last_export_date', 'total_exports')
+                    'last_export_date', 'total_exports')
         }),
-        ('⚠️ Legacy Fields (เก่า)', {
-            'fields': ('daily_conversion_limit', 'daily_conversions_used', 'total_conversions'),
-            'classes': ('collapse',)  # ซ่อนไว้
+        ('🔐 Security Questions (คำถามความปลอดภัย)', {
+            'fields': ('security_question_1', 'security_answer_1', 
+                    'security_question_2', 'security_answer_2'),
+            'description': 'คำถามสำหรับรีเซ็ตรหัสผ่าน'
         }),
     )
     
-    # เพิ่ม user ใหม่
+    # เพิ่ม user ใหม่ - เพิ่ม security questions
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
         ('ข้อมูลเพิ่มเติม', {
             'fields': ('email', 'user_type', 'daily_export_limit')
+        }),
+        ('🔐 Security Questions (แนะนำ)', {
+            'fields': ('security_question_1', 'security_answer_1', 
+                      'security_question_2', 'security_answer_2'),
+            'classes': ('collapse',),  # ซ่อนไว้ ให้เลือกตั้งหรือไม่ก็ได้
+            'description': 'ตั้งคำถามความปลอดภัยสำหรับรีเซ็ตรหัสผ่าน (ไม่บังคับ)'
         }),
     )
     

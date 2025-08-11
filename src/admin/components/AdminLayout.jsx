@@ -1,6 +1,19 @@
-// src/admin/components/AdminLayout.jsx
+// 🖤 Clean Dark Admin Layout - เหมือน navbar เรียบๆ
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faCogs, 
+  faChartLine, 
+  faUsers, 
+  faClipboardList, 
+  faImage,
+  faSignOutAlt,
+  faUser,
+  faUserShield,
+  faUserTie,
+  faSpinner
+} from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 
 export default function AdminLayout({ children }) {
@@ -14,27 +27,22 @@ export default function AdminLayout({ children }) {
   }, []);
 
   const checkAdminAccess = async () => {
-    // ตรวจสอบ token ทั้งแบบเก่าและใหม่
     const accessToken = localStorage.getItem('accessToken');
     const oldToken = localStorage.getItem('token');
     const token = accessToken || oldToken;
     
-    const storedUserData = localStorage.getItem('userData');
-
     if (!token) {
       navigate('/login');
       return;
     }
 
     try {
-      // ดึงข้อมูล user ล่าสุด
       const response = await axios.get('http://localhost:8000/api/accounts/user/', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       const user = response.data;
       
-      // ตรวจสอบสิทธิ์ admin
       if (user.user_type !== 'admin' && user.user_type !== 'superuser') {
         alert('คุณไม่มีสิทธิ์เข้าถึงระบบจัดการ');
         navigate('/');
@@ -44,7 +52,6 @@ export default function AdminLayout({ children }) {
       setUserData(user);
       localStorage.setItem('userData', JSON.stringify(user));
       
-      // ถ้าใช้ token เก่า ให้อัพเดทเป็นใหม่
       if (oldToken && !accessToken) {
         localStorage.setItem('accessToken', oldToken);
       }
@@ -61,7 +68,6 @@ export default function AdminLayout({ children }) {
   };
 
   const handleLogout = async () => {
-    // ตรวจสอบ token ทั้งแบบเก่าและใหม่
     const accessToken = localStorage.getItem('accessToken');
     const oldToken = localStorage.getItem('token');
     const token = accessToken || oldToken;
@@ -76,17 +82,68 @@ export default function AdminLayout({ children }) {
       }
     }
 
-    // ลบทั้ง token เก่าและใหม่
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userData');
-    localStorage.removeItem('token');  // ลบ token เก่าด้วย
-    localStorage.removeItem('username'); // ลบ username เก่าด้วย
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
     
     navigate('/login');
   };
 
-  // ย้าย styles ขึ้นมาก่อน return statements
+  const getUserIcon = () => {
+    if (!userData) return faUser;
+    
+    switch (userData.user_type) {
+      case 'superuser':
+        return faUserTie;
+      case 'admin':
+        return faUserShield;
+      case 'user':
+      default:
+        return faUser;
+    }
+  };
+
+  const getUserRoleBadge = () => {
+    if (!userData) return null;
+    
+    const badgeStyle = {
+      fontSize: '10px',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      padding: '3px 6px',
+      borderRadius: '4px',
+      letterSpacing: '0.5px',
+      marginLeft: '8px'
+    };
+
+    switch (userData.user_type) {
+      case 'superuser':
+        return (
+          <span style={{
+            ...badgeStyle,
+            backgroundColor: '#ffc107',
+            color: '#000'
+          }}>
+            SUPER USER
+          </span>
+        );
+      case 'admin':
+        return (
+          <span style={{
+            ...badgeStyle,
+            backgroundColor: '#dc3545',
+            color: '#fff'
+          }}>
+            ADMIN
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
   const styles = {
     container: {
       minHeight: '100vh',
@@ -94,9 +151,9 @@ export default function AdminLayout({ children }) {
       color: '#ffffff'
     },
     header: {
-      backgroundColor: '#2a2a2a',
-      padding: '0 20px',
-      borderBottom: '1px solid #3a3a3a',
+      backgroundColor: '#1a1a1a',
+      borderBottom: '1px solid #333',
+      padding: '0 24px',
       position: 'sticky',
       top: 0,
       zIndex: 1000
@@ -117,49 +174,66 @@ export default function AdminLayout({ children }) {
       fontWeight: '600',
       color: '#ffffff'
     },
+    logoIcon: {
+      color: '#ffffff',
+      fontSize: '20px'
+    },
     navigation: {
       display: 'flex',
-      gap: '20px',
+      gap: '16px',
       alignItems: 'center'
     },
     navLink: {
-      padding: '8px 16px',
-      borderRadius: '6px',
+      color: '#ffffff',
       textDecoration: 'none',
       fontSize: '14px',
-      transition: 'all 0.3s ease',
-      color: '#a0a0a0'
+      fontWeight: '500',
+      padding: '8px 12px',
+      borderRadius: '6px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      backgroundColor: 'transparent'
     },
     navLinkActive: {
       backgroundColor: '#007bff',
       color: '#ffffff'
     },
-    navLinkHover: {
-      backgroundColor: '#3a3a3a',
-      color: '#ffffff'
+    userSection: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '16px'
     },
     userInfo: {
       display: 'flex',
       alignItems: 'center',
-      gap: '15px'
+      gap: '8px',
+      backgroundColor: '#2a2a2a',
+      padding: '8px 12px',
+      borderRadius: '6px',
+      border: '1px solid #404040'
     },
-    userBadge: {
-      backgroundColor: userData?.user_type === 'superuser' ? '#ffd700' : '#ff6b6b',
-      color: userData?.user_type === 'superuser' ? '#000' : '#fff',
-      padding: '4px 8px',
-      borderRadius: '4px',
-      fontSize: '12px',
-      fontWeight: '600'
+    userIcon: {
+      color: '#ffffff',
+      fontSize: '16px'
+    },
+    username: {
+      fontSize: '14px',
+      fontWeight: '500',
+      color: '#ffffff'
     },
     logoutButton: {
       backgroundColor: '#dc3545',
       color: '#ffffff',
       border: 'none',
-      padding: '8px 16px',
+      padding: '8px 12px',
       borderRadius: '6px',
       fontSize: '14px',
+      fontWeight: '500',
       cursor: 'pointer',
-      transition: 'background-color 0.3s ease'
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px'
     },
     content: {
       maxWidth: '1200px',
@@ -175,27 +249,22 @@ export default function AdminLayout({ children }) {
       backgroundColor: '#1a1a1a',
       color: '#ffffff'
     },
-    loadingSpinner: {
-      width: '40px',
-      height: '40px',
-      border: '4px solid #3a3a3a',
-      borderTop: '4px solid #007bff',
-      borderRadius: '50%',
-      animation: 'spin 1s linear infinite',
-      marginBottom: '20px'
-    },
     loadingText: {
-      fontSize: '16px',
-      color: '#a0a0a0'
+      fontSize: '14px',
+      color: '#cccccc',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
     }
   };
 
-  // Loading state
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
-        <div style={styles.loadingSpinner}></div>
-        <p style={styles.loadingText}>กำลังตรวจสอบสิทธิ์...</p>
+        <div style={styles.loadingText}>
+          <FontAwesomeIcon icon={faSpinner} spin />
+          กำลังตรวจสอบสิทธิ์...
+        </div>
       </div>
     );
   }
@@ -206,120 +275,63 @@ export default function AdminLayout({ children }) {
   });
 
   return (
-    <>
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-      
-      <div style={styles.container}>
-        {/* Header */}
-        <header style={styles.header}>
-          <div style={styles.headerContent}>
-            <div style={styles.logo}>
-              🛠️ Admin Panel
-            </div>
+    <div style={styles.container}>
+      {/* Header */}
+      <header style={styles.header}>
+        <div style={styles.headerContent}>
+          <div style={styles.logo}>
+            <FontAwesomeIcon icon={faCogs} style={styles.logoIcon} />
+            Admin Panel
+          </div>
 
-            <nav style={styles.navigation}>
-              <Link 
-                to="/admin" 
-                style={getNavLinkStyle('/admin')}
-                onMouseEnter={(e) => {
-                  if (location.pathname !== '/admin') {
-                    e.target.style.backgroundColor = '#3a3a3a';
-                    e.target.style.color = '#ffffff';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (location.pathname !== '/admin') {
-                    e.target.style.backgroundColor = 'transparent';
-                    e.target.style.color = '#a0a0a0';
-                  }
-                }}
-              >
-                📊 Dashboard
-              </Link>
+          <nav style={styles.navigation}>
+            <Link to="/admin" style={getNavLinkStyle('/admin')}>
+              <FontAwesomeIcon icon={faChartLine} />
+              Dashboard
+            </Link>
 
-              <Link 
-                to="/admin/users" 
-                style={getNavLinkStyle('/admin/users')}
-                onMouseEnter={(e) => {
-                  if (location.pathname !== '/admin/users') {
-                    e.target.style.backgroundColor = '#3a3a3a';
-                    e.target.style.color = '#ffffff';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (location.pathname !== '/admin/users') {
-                    e.target.style.backgroundColor = 'transparent';
-                    e.target.style.color = '#a0a0a0';
-                  }
-                }}
-              >
-                👥 จัดการผู้ใช้
-              </Link>
+            <Link to="/admin/users" style={getNavLinkStyle('/admin/users')}>
+              <FontAwesomeIcon icon={faUsers} />
+              จัดการผู้ใช้
+            </Link>
 
-              <Link 
-                to="/admin/logs" 
-                style={getNavLinkStyle('/admin/logs')}
-                onMouseEnter={(e) => {
-                  if (location.pathname !== '/admin/logs') {
-                    e.target.style.backgroundColor = '#3a3a3a';
-                    e.target.style.color = '#ffffff';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (location.pathname !== '/admin/logs') {
-                    e.target.style.backgroundColor = 'transparent';
-                    e.target.style.color = '#a0a0a0';
-                  }
-                }}
-              >
-                📋 Activity Logs
-              </Link>
+            <Link to="/admin/logs" style={getNavLinkStyle('/admin/logs')}>
+              <FontAwesomeIcon icon={faClipboardList} />
+              Activity Logs
+            </Link>
 
-              <Link 
-                to="/" 
-                style={styles.navLink}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#3a3a3a';
-                  e.target.style.color = '#ffffff';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'transparent';
-                  e.target.style.color = '#a0a0a0';
-                }}
-              >
-                🖼️ กลับเว็บหลัก
-              </Link>
-            </nav>
+            <Link to="/" style={styles.navLink}>
+              <FontAwesomeIcon icon={faImage} />
+              กลับเว็บหลัก
+            </Link>
+          </nav>
 
+          <div style={styles.userSection}>
+            {/* User Info */}
             <div style={styles.userInfo}>
-              <span style={styles.userBadge}>
-                {userData?.user_type === 'superuser' ? 'SUPER ADMIN' : 'ADMIN'}
-              </span>
-              <span style={{ color: '#e0e0e0', fontSize: '14px' }}>
+              <FontAwesomeIcon 
+                icon={getUserIcon()} 
+                style={styles.userIcon}
+              />
+              <span style={styles.username}>
                 {userData?.username}
               </span>
-              <button 
-                onClick={handleLogout}
-                style={styles.logoutButton}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#c82333'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#dc3545'}
-              >
-                ออกจากระบบ
-              </button>
+              {getUserRoleBadge()}
             </div>
+            
+            {/* Logout Button */}
+            <button onClick={handleLogout} style={styles.logoutButton}>
+              <FontAwesomeIcon icon={faSignOutAlt} />
+              ออกจากระบบ
+            </button>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Content */}
-        <main style={styles.content}>
-          {children}
-        </main>
-      </div>
-    </>
+      {/* Content */}
+      <main style={styles.content}>
+        {children}
+      </main>
+    </div>
   );
 }
