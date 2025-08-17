@@ -267,7 +267,7 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename }, ref)
               <div style={{ 
                 marginTop: '10px', 
                 width: `${buttonWidth}px`, 
-                margin: '10px auto 0',
+                margin: '10px 0 0 calc(50% + 45px)',  
                 padding: '0 10px' // เพิ่ม padding สำหรับมือถือ
               }}>
                 <button

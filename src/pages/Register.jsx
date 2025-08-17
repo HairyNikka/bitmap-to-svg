@@ -10,7 +10,8 @@ import {
   faUserPlus,
   faCheck,
   faExclamation,
-  faShield
+  faShield,
+  faImage
 } from '@fortawesome/free-solid-svg-icons';
 import SecurityQuestionsSetup from '../pages/SecurityQuestionsSetup';
 
@@ -159,10 +160,12 @@ export default function Register() {
   }
 
   return (
+
     <div style={styles.container}>
-      <Link to="/" style={styles.homeLink}>
-        <span>🖼️</span> กลับหน้าแปลงภาพ
-      </Link>
+            <Link to="/" style={styles.homeLink}>
+              <FontAwesomeIcon icon={faImage} style={styles.backIcon} />
+              กลับหน้าแปลงภาพ
+            </Link>
 
       <div style={styles.card}>
         {/* Progress Steps */}
@@ -246,7 +249,6 @@ export default function Register() {
                   onFocus={() => setTouched(prev => ({...prev, email: true}))}
                   onChange={(e) => {
                     setEmail(e.target.value);
-                    // เอา validateBasicForm() ออก - ให้ useEffect จัดการ
                   }}
                   required
                   disabled={loading}
@@ -276,7 +278,6 @@ export default function Register() {
                   onFocus={() => setTouched(prev => ({...prev, password: true}))}
                   onChange={(e) => {
                     setPassword(e.target.value);
-                    // เอา setTimeout ออก - ให้ useEffect จัดการ
                   }}
                   required
                   disabled={loading}
@@ -597,16 +598,22 @@ const styles = {
     transition: 'all 0.2s ease'
   },
   homeLink: {
-    position: 'absolute',
-    top: '20px',
-    left: '20px',
-    color: '#a0a0a0',
-    textDecoration: 'none',
-    fontSize: '14px',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    transition: 'color 0.2s ease'
-  }
+      position: 'absolute',
+      top: '20px',
+      left: '20px',
+      color: '#a0a0a0',
+      textDecoration: 'none',
+      fontSize: '14px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      transition: 'color 0.2s ease',
+      backgroundColor: 'transparent',
+      border: '1px solid #6b7280',
+      borderRadius: '8px',
+      padding: '8px 16px'
+  },
+  backIcon: {
+      fontSize: '12px'
+  },
 };

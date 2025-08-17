@@ -89,19 +89,20 @@ export default function Navbar() {
   };
 
   const getUserIcon = () => {
-    if (!userData) return faUser;
+    if (!userData) return { icon: faUser, color: '#6b7280' };
     
     switch (userData.user_type) {
       case 'superuser':
-        return faUserTie; // ใช้ faUserTie แทน faUserCrown
+        return { icon: faUserTie, color: '#eab308' }; // สีเหลือง
       case 'admin':
-        return faUserShield;
+        return { icon: faUserShield, color: '#dc2626' }; // สีแดง
       case 'user':
       default:
-        return faUser;
+        return { icon: faUser, color: '#6b7280' }; // สีเทา
     }
   };
-
+  const { icon, color } = getUserIcon();
+  
   const getUserRoleBadge = () => {
     if (!userData || userData.user_type === 'user') return null;
     
@@ -269,8 +270,8 @@ export default function Navbar() {
             {/* User Info */}
             <div style={styles.userInfo}>
               <FontAwesomeIcon 
-                icon={getUserIcon()} 
-                style={styles.userIcon}
+                icon={icon} 
+                style={{...styles.userIcon, color: color}}
               />
               <span style={styles.username}>
                 {getUserDisplayName()}

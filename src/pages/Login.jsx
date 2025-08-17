@@ -10,7 +10,8 @@ import {
   faSignInAlt,
   faExclamation,
   faCheck,
-  faKey
+  faKey,
+  faImage
 } from '@fortawesome/free-solid-svg-icons';
 
 export default function Login({ setIsAuthenticated, setUsername }) {
@@ -354,38 +355,24 @@ export default function Login({ setIsAuthenticated, setUsername }) {
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
-      transition: 'color 0.2s ease'
-    }
+      transition: 'color 0.2s ease',
+      backgroundColor: 'transparent',
+      border: '1px solid #6b7280',
+      borderRadius: '8px',
+      padding: '8px 16px'
+    },
+    backIcon: {
+      fontSize: '12px'
+    },
   };
 
   return (
     <>
-      {/* Add spinner animation */}
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
-        body {
-          margin: 0;
-          padding: 0;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-        }
-        html, body {
-          height: 100%;
-        }
-      `}</style>
-      
       <div style={styles.container}>
-        <Link to="/" style={styles.homeLink}>
-          <span>🖼️</span> กลับหน้าแปลงภาพ
-        </Link>
-
+            <Link to="/" style={styles.homeLink}>
+              <FontAwesomeIcon icon={faImage} style={styles.backIcon} />
+              กลับหน้าแปลงภาพ
+            </Link>
         <div style={styles.card}>
           <h1 style={styles.title}>
             <FontAwesomeIcon icon={faSignInAlt} style={styles.titleIcon} />

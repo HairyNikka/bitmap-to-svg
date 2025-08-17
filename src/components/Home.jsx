@@ -60,7 +60,7 @@ export default function Home() {
   };
 
   return (
-    <div style={{ width: '100vw', overflowX: 'hidden', boxSizing: 'border-box' }}>
+    <div style={{ width: '100%', overflowX: 'hidden', boxSizing: 'border-box' }}>
       <div style={{ paddingTop: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '100%', width: '100%' }}>
         <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', padding: '0 20px', flexWrap: 'wrap' }}>
 
@@ -85,6 +85,12 @@ export default function Home() {
                 setImageSrc={handleImageUpdate}
                 setFilename={setUploadedFilename}
                 imageSrc={imageSrc}
+              />
+
+              {/* Preset Section */}
+              <PresetButtons
+                setOptions={setOptions}
+                onPresetChange={handlePresetChange}
               />
 
               {/* Action Buttons */}
@@ -127,11 +133,6 @@ export default function Home() {
 
             {/* Scrollable Parameters Section - เลื่อนได้ */}
             <div style={styles.parametersBox}>
-              {/* Preset Section */}
-              <PresetButtons
-                setOptions={setOptions}
-                onPresetChange={handlePresetChange}
-              />
 
               {/* Parameter Controls Section */}
               <ParameterControls
@@ -162,12 +163,11 @@ export default function Home() {
 // Styles
 const styles = {
   controlPanel: {
-    width: '300px',
+    width: '320px',
     maxHeight: '85vh',
     alignSelf: 'flex-start',
     marginTop: '30px',
-    marginLeft: '0px',
-    marginRight: '30px',
+    marginLeft: '100px',
     backgroundColor: '#1e1e1e',
     border: '1px solid #444',
     padding: '20px',

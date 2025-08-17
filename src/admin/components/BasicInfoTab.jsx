@@ -125,7 +125,7 @@ export default function BasicInfoTab({
             onFocus={(e) => e.target.style.borderColor = '#007bff'}
             onBlur={(e) => e.target.style.borderColor = '#3a3a3a'}
           >
-            <option value="user">ผู้ใช้</option>
+            <option value="user">ผู้ใช้ทั่วไป</option>
             <option value="admin">แอดมิน</option>
             <option value="superuser">ซุปเปอร์ยูสเซอร์</option>
           </select>

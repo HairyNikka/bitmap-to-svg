@@ -296,7 +296,7 @@ export default function UserManagement() {
 
   const getUserTypeDisplay = (type) => {
     const typeMap = {
-      'user': 'ผู้ใช้',
+      'user': 'ผู้ใช้ทั่วไป',
       'admin': 'แอดมิน',
       'superuser': 'ซุปเปอร์ยูสเซอร์'
     };
@@ -345,7 +345,7 @@ export default function UserManagement() {
               style={styles.select}
             >
               <option value="">ทุกประเภท</option>
-              <option value="user">ผู้ใช้</option>
+              <option value="user">ผู้ใช้ทั่วไป</option>
               <option value="admin">แอดมิน</option>
               {currentUser?.user_type === 'superuser' && (
                 <option value="superuser">ซุปเปอร์ยูสเซอร์</option>

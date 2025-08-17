@@ -5,7 +5,9 @@ import {
   faPalette, 
   faMagicWandSparkles,
   faSliders,
-  faInfoCircle
+  faInfoCircle,
+  faChevronDown,
+  faChevronRight
 } from '@fortawesome/free-solid-svg-icons';
 
 const ParameterControls = ({ options, setOptions, resetTrigger }) => {
@@ -22,7 +24,15 @@ const ParameterControls = ({ options, setOptions, resetTrigger }) => {
   };
 
   const [localOptions, setLocalOptions] = useState(defaultOptions);
-  const isUpdatingFromParent = useRef(false); // ✅ เพิ่มนี้
+  const isUpdatingFromParent = useRef(false);
+
+  // ✅ เพิ่ม state สำหรับ collapsible groups
+  const [collapsedGroups, setCollapsedGroups] = useState({
+    quality: false,    // เปิดไว้เป็นค่าเริ่มต้น (ใช้บ่อยสุด)
+    colors: true,      // ปิดไว้
+    effects: true,     // ปิดไว้
+    advanced: true     // ปิดไว้
+  });
 
   // Sync with parent options
   useEffect(() => {
@@ -34,13 +44,13 @@ const ParameterControls = ({ options, setOptions, resetTrigger }) => {
   // Reset when resetTrigger changes  
   useEffect(() => {
     if (options && Object.keys(options).length > 0) {
-      isUpdatingFromParent.current = true; // ✅ ป้องกัน loop
+      isUpdatingFromParent.current = true;
       setLocalOptions(options);
       setTimeout(() => {
-        isUpdatingFromParent.current = false; // ✅ รีเซ็ต flag
+        isUpdatingFromParent.current = false;
       }, 0);
     }
-  }, [resetTrigger]); // ✅ ลบ options dependency
+  }, [resetTrigger]);
 
   const handleOptionChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -48,6 +58,14 @@ const ParameterControls = ({ options, setOptions, resetTrigger }) => {
     setLocalOptions((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : parseFloat(value)
+    }));
+  };
+
+  // ✅ ฟังก์ชันสำหรับ toggle group
+  const toggleGroup = (groupKey) => {
+    setCollapsedGroups(prev => ({
+      ...prev,
+      [groupKey]: !prev[groupKey]
     }));
   };
 
@@ -202,17 +220,39 @@ const ParameterControls = ({ options, setOptions, resetTrigger }) => {
   };
 
   const renderGroup = (groupKey, group) => {
+    const isCollapsed = collapsedGroups[groupKey];
+    
     return (
       <div key={groupKey} style={styles.parameterGroup}>
-        <div style={styles.groupHeader}>
+        {/* ✅ Collapsible Header */}
+        <div 
+          style={styles.groupHeader}
+          onClick={() => toggleGroup(groupKey)}
+        >
+          <div style={styles.groupHeaderLeft}>
+            <FontAwesomeIcon 
+              icon={group.icon} 
+              style={{...styles.groupIcon, color: group.color}} 
+            />
+            <h4 style={styles.groupTitle}>{group.name}</h4>
+          </div>
+          
+          {/* ✅ Chevron Icon */}
           <FontAwesomeIcon 
-            icon={group.icon} 
-            style={{...styles.groupIcon, color: group.color}} 
+            icon={isCollapsed ? faChevronRight : faChevronDown}
+            style={styles.chevronIcon}
           />
-          <h4 style={styles.groupTitle}>{group.name}</h4>
         </div>
         
-        <div style={styles.groupContent}>
+        {/* ✅ Collapsible Content */}
+        <div style={{
+          ...styles.groupContent,
+          maxHeight: isCollapsed ? '0px' : '1000px',
+          opacity: isCollapsed ? 0 : 1,
+          overflow: 'hidden',
+          transition: 'all 0.3s ease-in-out',
+          paddingTop: isCollapsed ? '0px' : '12px'
+        }}>
           {Object.entries(group.params).map(([paramKey, config]) => 
             renderSlider(groupKey, paramKey, config)
           )}
@@ -237,7 +277,7 @@ const ParameterControls = ({ options, setOptions, resetTrigger }) => {
   );
 };
 
-// Styles
+// ✅ Updated Styles
 const styles = {
   container: {
     width: '100%'
@@ -263,21 +303,30 @@ const styles = {
   groupsContainer: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px'
+    gap: '12px' // ลดช่องว่างระหว่างกลุ่ม
   },
   parameterGroup: {
     backgroundColor: '#1a1a1a',
     border: '1px solid #333',
     borderRadius: '8px',
-    padding: '12px'
+    overflow: 'hidden' // สำหรับ animation
   },
   groupHeader: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    marginBottom: '12px',
-    paddingBottom: '6px',
-    borderBottom: '1px solid #2a2a2a'
+    justifyContent: 'space-between',
+    padding: '12px',
+    cursor: 'pointer',
+    borderBottom: '1px solid #2a2a2a',
+    transition: 'background-color 0.2s ease',
+    ':hover': {
+      backgroundColor: '#252525'
+    }
+  },
+  groupHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
   },
   groupIcon: {
     fontSize: '14px'
@@ -288,10 +337,18 @@ const styles = {
     fontWeight: '500',
     color: 'white'
   },
+  chevronIcon: {
+    fontSize: '12px',
+    color: '#888',
+    transition: 'transform 0.3s ease'
+  },
   groupContent: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px'
+    gap: '12px',
+    paddingLeft: '12px',
+    paddingRight: '12px',
+    paddingBottom: '12px'
   },
   parameterItem: {
     width: '100%'

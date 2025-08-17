@@ -2,6 +2,19 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import axios from 'axios';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faUsers, 
+  faExchangeAlt, 
+  faSignInAlt, 
+  faUserPlus,
+  faChartLine,
+  faCog,
+  faUser,
+  faUserShield,
+  faUserTie,
+  faTrophy
+} from '@fortawesome/free-solid-svg-icons';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -97,7 +110,13 @@ export default function AdminDashboard() {
       fontSize: '18px',
       fontWeight: '600',
       color: '#ffffff',
-      marginBottom: '20px'
+      marginBottom: '20px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px'
+    },
+    detailCardIcon: {
+      fontSize: '20px'
     },
     userTypeList: {
       listStyle: 'none',
@@ -116,7 +135,13 @@ export default function AdminDashboard() {
     },
     userTypeName: {
       fontSize: '14px',
-      color: '#e0e0e0'
+      color: '#e0e0e0',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    },
+    userTypeIcon: {
+      fontSize: '16px'
     },
     userTypeCount: {
       fontSize: '14px',
@@ -213,6 +238,15 @@ export default function AdminDashboard() {
     return typeMap[type] || type;
   };
 
+  const getUserTypeIcon = (type) => {
+    const iconMap = {
+      'user': { icon: faUser, color: '#6b7280' }, // สีเทา
+      'admin': { icon: faUserShield, color: '#dc2626' }, // สีแดง
+      'superuser': { icon: faUserTie, color: '#eab308' } // สีเหลือง
+    };
+    return iconMap[type] || { icon: faUser, color: '#6b7280' };
+  };
+
   return (
     <AdminLayout>
       <div style={styles.container}>
@@ -227,7 +261,10 @@ export default function AdminDashboard() {
           <div style={styles.statCard}>
             <div style={styles.statCardHeader}>
               <span style={styles.statCardTitle}>ผู้ใช้ทั้งหมด</span>
-              <span style={styles.statCardIcon}>👥</span>
+              <FontAwesomeIcon 
+                icon={faUsers} 
+                style={{...styles.statCardIcon, color: '#4ade80'}} 
+              />
             </div>
             <div style={styles.statCardValue}>{stats?.users?.total || 0}</div>
             <div style={styles.statCardDescription}>
@@ -238,7 +275,10 @@ export default function AdminDashboard() {
           <div style={styles.statCard}>
             <div style={styles.statCardHeader}>
               <span style={styles.statCardTitle}>การแปลงภาพ</span>
-              <span style={styles.statCardIcon}>🔄</span>
+              <FontAwesomeIcon 
+                icon={faExchangeAlt} 
+                style={{...styles.statCardIcon, color: '#3b82f6'}} 
+              />
             </div>
             <div style={styles.statCardValue}>{stats?.conversions?.total || 0}</div>
             <div style={styles.statCardDescription}>
@@ -249,7 +289,10 @@ export default function AdminDashboard() {
           <div style={styles.statCard}>
             <div style={styles.statCardHeader}>
               <span style={styles.statCardTitle}>การเข้าสู่ระบบ</span>
-              <span style={styles.statCardIcon}>🔐</span>
+              <FontAwesomeIcon 
+                icon={faSignInAlt} 
+                style={{...styles.statCardIcon, color: '#8b5cf6'}} 
+              />
             </div>
             <div style={styles.statCardValue}>{stats?.activity?.recent_logins || 0}</div>
             <div style={styles.statCardDescription}>
@@ -260,7 +303,10 @@ export default function AdminDashboard() {
           <div style={styles.statCard}>
             <div style={styles.statCardHeader}>
               <span style={styles.statCardTitle}>สมาชิกใหม่</span>
-              <span style={styles.statCardIcon}>📈</span>
+              <FontAwesomeIcon 
+                icon={faUserPlus} 
+                style={{...styles.statCardIcon, color: '#f59e0b'}} 
+              />
             </div>
             <div style={styles.statCardValue}>{stats?.users?.recent_registrations || 0}</div>
             <div style={styles.statCardDescription}>
@@ -273,28 +319,47 @@ export default function AdminDashboard() {
         <div style={styles.detailsGrid}>
           {/* User Types Breakdown */}
           <div style={styles.detailCard}>
-            <h3 style={styles.detailCardTitle}>ประเภทผู้ใช้</h3>
+            <h3 style={styles.detailCardTitle}>
+              <FontAwesomeIcon 
+                icon={faChartLine} 
+                style={{...styles.detailCardIcon, color: '#10b981'}} 
+              />
+              ประเภทผู้ใช้
+            </h3>
             <ul style={styles.userTypeList}>
-              {stats?.users?.by_type?.map((item, index) => (
-                <li 
-                  key={item.user_type} 
-                  style={index === stats.users.by_type.length - 1 ? 
-                    {...styles.userTypeItem, ...styles.userTypeLastItem} : 
-                    styles.userTypeItem
-                  }
-                >
-                  <span style={styles.userTypeName}>
-                    {getUserTypeDisplay(item.user_type)}
-                  </span>
-                  <span style={styles.userTypeCount}>{item.count}</span>
-                </li>
-              )) || []}
+              {stats?.users?.by_type?.map((item, index) => {
+                const { icon, color } = getUserTypeIcon(item.user_type);
+                return (
+                  <li 
+                    key={item.user_type} 
+                    style={index === stats.users.by_type.length - 1 ? 
+                      {...styles.userTypeItem, ...styles.userTypeLastItem} : 
+                      styles.userTypeItem
+                    }
+                  >
+                    <span style={styles.userTypeName}>
+                      <FontAwesomeIcon 
+                        icon={icon} 
+                        style={{...styles.userTypeIcon, color}} 
+                      />
+                      {getUserTypeDisplay(item.user_type)}
+                    </span>
+                    <span style={styles.userTypeCount}>{item.count}</span>
+                  </li>
+                );
+              }) || []}
             </ul>
           </div>
 
           {/* Top Active Users */}
           <div style={styles.detailCard}>
-            <h3 style={styles.detailCardTitle}>ผู้ใช้ที่ Active ที่สุด</h3>
+            <h3 style={styles.detailCardTitle}>
+              <FontAwesomeIcon 
+                icon={faTrophy} 
+                style={{...styles.detailCardIcon, color: '#f59e0b'}} 
+              />
+              ผู้ใช้ที่ Active ที่สุด
+            </h3>
             <ul style={styles.topUsersList}>
               {stats?.activity?.top_users?.slice(0, 5).map((user, index) => (
                 <li 

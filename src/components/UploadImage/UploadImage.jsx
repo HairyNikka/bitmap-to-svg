@@ -114,16 +114,6 @@ const UploadImage = ({ setImageSrc, setFilename, imageSrc }) => {
         />
       </div>
 
-      {/* File Info */}
-      {fileName && !isDefaultImage && (
-        <div style={styles.fileInfo}>
-          <div style={styles.fileInfoItem}>
-            <FontAwesomeIcon icon={faImage} style={styles.infoIcon} />
-            <span style={styles.infoLabel}>ไฟล์:</span>
-            <span style={styles.infoValue}>{fileName}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -175,32 +165,6 @@ const styles = {
   },
   hiddenInput: {
     display: 'none'
-  },
-  fileInfo: {
-    backgroundColor: '#1a1a1a',
-    padding: '12px',
-    borderRadius: '6px',
-    marginTop: '8px',
-    border: '1px solid #333'
-  },
-  fileInfoItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '13px'
-  },
-  infoIcon: {
-    color: '#888',
-    width: '14px'
-  },
-  infoLabel: {
-    color: '#aaa',
-    minWidth: '35px'
-  },
-  infoValue: {
-    color: 'white',
-    fontWeight: '500',
-    wordBreak: 'break-word'
   }
 };
 

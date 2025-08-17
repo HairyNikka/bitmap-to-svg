@@ -146,6 +146,9 @@ class UserActivityLogAdmin(admin.ModelAdmin):
     
     # เรียงลำดับ
     ordering = ['-timestamp']
+
+    # ลบ logs
+    actions = ['delete_30old_logs' , 'delete_7old_logs']
     
     # อ่านอย่างเดียว
     readonly_fields = ['user', 'action', 'timestamp', 'details']
@@ -161,6 +164,33 @@ class UserActivityLogAdmin(admin.ModelAdmin):
         # เฉพาะ superuser ลบ log ได้
         return request.user.user_type == 'superuser'
     
+
+    def delete_7old_logs(self, request, queryset):
+        """ลบ logs เก่ากว่า 7 วัน"""
+        from datetime import timedelta
+        from django.utils import timezone
+        
+        cutoff_date = timezone.now() - timedelta(days=7)  
+        old_logs = queryset.filter(timestamp__lt=cutoff_date)
+        count = old_logs.count()
+        old_logs.delete()
+        
+        self.message_user(request, f'ลบ Activity Logs เก่า: {count} รายการ')
+    delete_7old_logs.short_description = "ลบ Logs เก่า (>7 วัน)"  
+
+    def delete_30old_logs(self, request, queryset):
+        """ลบ logs เก่ากว่า 30 วัน"""
+        from datetime import timedelta
+        from django.utils import timezone
+        
+        cutoff_date = timezone.now() - timedelta(days=30)
+        old_logs = queryset.filter(timestamp__lt=cutoff_date)
+        count = old_logs.count()
+        old_logs.delete()
+        
+        self.message_user(request, f'ลบ Activity Logs เก่า: {count} รายการ')
+    delete_30old_logs.short_description = "ลบ Logs เก่า (>30 วัน)"
+
     # ✅ Custom display functions
     def action_with_icon(self, obj):
         """แสดง action พร้อม emoji"""
@@ -210,7 +240,7 @@ class UserActivityLogAdmin(admin.ModelAdmin):
             return qs.filter(user=request.user)  # เห็นแค่ log ตัวเอง
 
 
-# ✅ เพิ่ม Guest Sessions Management
+# Guest Sessions Management
 @admin.register(GuestSession)
 class GuestSessionAdmin(admin.ModelAdmin):
     list_display = [
@@ -228,7 +258,7 @@ class GuestSessionAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False  # ไม่ให้แก้ไข
     
-    # ✅ Custom display functions
+    # Custom display functions
     def guest_id_short(self, obj):
         return f"{obj.guest_id[:12]}..."
     guest_id_short.short_description = 'Guest ID'
@@ -268,8 +298,8 @@ class GuestSessionAdmin(admin.ModelAdmin):
         count = old_sessions.count()
         old_sessions.delete()
         
-        self.message_user(request, f'🗑️ ลบ Guest Sessions เก่า: {count} รายการ')
-    delete_old_sessions.short_description = "🗑️ ลบ Sessions เก่า (>7 วัน)"
+        self.message_user(request, f'ลบ Guest Sessions เก่า: {count} รายการ')
+    delete_old_sessions.short_description = "ลบ Sessions เก่า (>7 วัน)"
     
     def reset_guest_limits(self, request, queryset):
         """Reset export limits สำหรับ guest sessions ที่เลือก"""
@@ -284,6 +314,6 @@ class GuestSessionAdmin(admin.ModelAdmin):
 
 
 # เปลี่ยนชื่อ admin site
-admin.site.site_header = "🖼️ Bitmap to Vector - ระบบจัดการ"
+admin.site.site_header = "Bitmap to Vector - ระบบจัดการ"
 admin.site.site_title = "Admin Panel"
 admin.site.index_title = "ระบบจัดการหลังบ้าน"

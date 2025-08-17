@@ -204,7 +204,8 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
       flexWrap: 'nowrap',
       justifyContent: 'center',
       alignItems: isMobile ? 'center' : 'flex-start',
-      padding: isMobile ? '0 10px' : '0'
+      padding: isMobile ? '0 10px' : '0',
+      marginLeft: '100px',
     },
     section: {
       alignSelf: isMobile ? 'center' : 'flex-start',
