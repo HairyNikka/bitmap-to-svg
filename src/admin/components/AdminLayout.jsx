@@ -197,7 +197,7 @@ export default function AdminLayout({ children }) {
       backgroundColor: 'transparent'
     },
     navLinkActive: {
-      backgroundColor: '#007bff',
+      backgroundColor: '#152a6fff',
       color: '#ffffff'
     },
     userSection: {
@@ -224,7 +224,7 @@ export default function AdminLayout({ children }) {
       color: '#ffffff'
     },
     logoutButton: {
-      backgroundColor: '#dc3545',
+      backgroundColor: '#6b1818ff',
       color: '#ffffff',
       border: 'none',
       padding: '8px 12px',

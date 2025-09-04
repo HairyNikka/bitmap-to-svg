@@ -206,7 +206,7 @@ export default function Navbar() {
       textDecoration: "none",
       fontSize: "14px",
       fontWeight: "500",
-      backgroundColor: "#28a745",
+      backgroundColor: "#152a6fff",
       padding: "8px 12px",
       borderRadius: "6px",
       display: "flex",
@@ -215,7 +215,7 @@ export default function Navbar() {
     },
 
     logoutButton: {
-      backgroundColor: "#dc3545",
+      backgroundColor: "#6b1818ff",
       color: "#ffffff",
       border: "none",
       padding: "8px 12px",
@@ -229,7 +229,7 @@ export default function Navbar() {
     },
 
     loginButton: {
-      backgroundColor: "#007bff",
+      backgroundColor: "#146c23ff",
       color: "#ffffff",
       textDecoration: "none",
       padding: "8px 16px",
