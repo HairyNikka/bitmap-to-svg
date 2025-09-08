@@ -18,6 +18,7 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
   const lastPos = useRef({ x: 0, y: 0 });
   const svgRenderTimeout = useRef(null);
   const moveFrame = useRef(null);
+  
 
   const border = 100;
 
@@ -99,7 +100,7 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
     svgRenderTimeout.current = setTimeout(() => {
       setShowSvg(true);
       setSvgReady(true);
-    }, 300);
+    }, 500);
   };
 
   // 🎯 Mouse/Touch Events - รองรับทั้งสอง
@@ -168,9 +169,14 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
       setZoom(z => {
         const newZoom = Math.max(0.2, Math.min(z + delta, 5));
         setPosition(pos => clampPosition(pos.x, pos.y));
+        
+        // เรียก triggerSvgDelay ใน next tick หลัง state update
+        setTimeout(() => {
+          triggerSvgDelay();
+        }, 300);
+        
         return newZoom;
       });
-      triggerSvgDelay();
     };
 
     // Event Listeners
