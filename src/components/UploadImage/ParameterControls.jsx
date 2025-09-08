@@ -10,7 +10,7 @@ import {
   faChevronRight
 } from '@fortawesome/free-solid-svg-icons';
 
-const ParameterControls = ({ options, setOptions, resetTrigger }) => {
+const ParameterControls = ({ options, setOptions, resetTrigger, onParameterAdjusting }) => {
   const defaultOptions = {
     pathomit: 1,
     numberofcolors: 8,
@@ -25,6 +25,9 @@ const ParameterControls = ({ options, setOptions, resetTrigger }) => {
 
   const [localOptions, setLocalOptions] = useState(defaultOptions);
   const isUpdatingFromParent = useRef(false);
+  
+  const [isAdjusting, setIsAdjusting] = useState(false);
+  const adjustingTimeout = useRef(null);
 
   // ✅ เพิ่ม state สำหรับ collapsible groups
   const [collapsedGroups, setCollapsedGroups] = useState({
@@ -55,10 +58,21 @@ const ParameterControls = ({ options, setOptions, resetTrigger }) => {
   const handleOptionChange = (e) => {
     const { name, value, type, checked } = e.target;
     
+    // แจ้งว่าเริ่มปรับ
+    setIsAdjusting(true);
+    if (onParameterAdjusting) onParameterAdjusting(true);
+    
     setLocalOptions((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : parseFloat(value)
     }));
+    
+    // รอหยุดปรับ 300ms แล้วแจ้งว่าหยุดแล้ว
+    clearTimeout(adjustingTimeout.current);
+    adjustingTimeout.current = setTimeout(() => {
+      setIsAdjusting(false);
+      if (onParameterAdjusting) onParameterAdjusting(false);
+    }, 300);
   };
 
   // ✅ ฟังก์ชันสำหรับ toggle group

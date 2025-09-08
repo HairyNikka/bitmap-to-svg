@@ -10,9 +10,9 @@ export default function Home() {
   const [svgData, setSvgData] = useState(null);
   const [imageSrc, setImageSrc] = useState(null);
   const [uploadedFilename, setUploadedFilename] = useState('');
-  
   // Upload validation state
   const [hasUploadedImage, setHasUploadedImage] = useState(false);
+  const [isParameterAdjusting, setIsParameterAdjusting] = useState(false);
 
   // Default options (ปานกลาง preset)
   const defaultOptions = {
@@ -72,6 +72,7 @@ export default function Home() {
               filename={uploadedFilename}
               options={options}
               setSvgData={setSvgData}
+              isParameterAdjusting={isParameterAdjusting}
             />
           </div>
 
@@ -139,6 +140,7 @@ export default function Home() {
                 options={options}
                 setOptions={setOptions}
                 resetTrigger={resetTrigger}
+                onParameterAdjusting={setIsParameterAdjusting}
               />
             </div>
 

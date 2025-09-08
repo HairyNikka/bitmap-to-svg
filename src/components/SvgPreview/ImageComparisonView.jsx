@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle, us
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faImage, faMagicWandSparkles } from '@fortawesome/free-solid-svg-icons';
 
-export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPng, converting }, ref) {
+export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPng, converting, isParameterAdjusting }, ref) {
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [showSvg, setShowSvg] = useState(false);
@@ -244,9 +244,7 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
       cursor: dragging.current ? 'grabbing' : 'grab',
       borderRadius: '8px',
       margin: isMobile ? '0 auto' : '0',
-      // 📱 เพิ่ม touch-action สำหรับ mobile
-      touchAction: 'none',
-      // 🎯 เพิ่ม user-select ป้องกันการเลือกข้อความ
+      touchAction: 'none', // ป้องกันการเลือกข้อความ
       userSelect: 'none',
       WebkitUserSelect: 'none'
     },
@@ -309,8 +307,8 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
             แปลงแล้ว
         </h4>
         <div style={styles.wrapper}>
-          {/* แสดง PNG cache ขณะที่ SVG กำลัง render */}
-          {!showSvg && cachedPng && (
+          {/* แสดง PNG cache ขณะที่ SVG กำลัง render หรือกำลังปรับพารามิเตอร์ */}
+          {(!showSvg || isParameterAdjusting) && cachedPng && (
             <img 
               src={cachedPng} 
               alt="preview" 
@@ -318,9 +316,9 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
               draggable={false} 
             />
           )}
-          
-          {/* แสดง SVG เมื่อพร้อม */}
-          {showSvg && svgReady && svg && (
+
+          {/* แสดง SVG เมื่อพร้อมและไม่ได้ปรับพารามิเตอร์ */}
+          {showSvg && svgReady && svg && !isParameterAdjusting && (
             <div
               ref={svgRef}
               style={styles.layer}

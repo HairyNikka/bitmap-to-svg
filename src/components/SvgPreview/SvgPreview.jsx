@@ -8,7 +8,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 
-const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename }, ref) => {
+const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isParameterAdjusting }, ref) => {
   const [svg, setSvg] = useState(null);
   const [cachedPng, setCachedPng] = useState(null);
   const [showExport, setShowExport] = useState(false);
@@ -260,6 +260,7 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename }, ref)
               imageSrc={imageSrc}
               svg={svg}
               cachedPng={cachedPng}
+              isParameterAdjusting={isParameterAdjusting}
             />
             
             {/* Download Button */}
