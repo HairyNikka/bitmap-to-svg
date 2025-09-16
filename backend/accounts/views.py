@@ -61,7 +61,10 @@ class UserView(APIView):
             "user_type": getattr(user, 'user_type', 'user'),  # เพิ่ม user_type
             "date_joined": user.date_joined,  # เพิ่มวันที่สมัคร
             "last_login": user.last_login,  # เพิ่มการ login ครั้งล่าสุด
-            # 🔄 เพิ่มข้อมูล export limits
+            "security_question_1": getattr(user, 'security_question_1', ''),
+            "security_answer_1": getattr(user, 'security_answer_1', ''),
+            "security_question_2": getattr(user, 'security_question_2', ''),
+            "security_answer_2": getattr(user, 'security_answer_2', ''),
             "export_limits": get_export_limits_info(request)
         })
 
@@ -685,3 +688,80 @@ def update_user_security_questions(request, user_id):
         
     except User.DoesNotExist:
         return Response({'error': 'ไม่พบผู้ใช้'}, status=status.HTTP_404_NOT_FOUND)
+    
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_profile(request):
+    """API สำหรับอัพเดทโปรไฟล์ผู้ใช้"""
+    try:
+        user = request.user
+        data = request.data
+        
+        # อัพเดท email
+        if 'email' in data:
+            email = data['email'].strip()
+            if not email:
+                return Response({'error': 'กรุณากรอกอีเมล'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # ตรวจสอบว่าอีเมลซ้ำกับคนอื่นหรือไม่
+            if User.objects.filter(email=email).exclude(id=user.id).exists():
+                return Response({'error': 'อีเมลนี้ถูกใช้งานแล้ว'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            user.email = email
+        
+        # เปลี่ยนรหัสผ่าน
+        if 'new_password' in data and data['new_password']:
+            current_password = data.get('current_password', '')
+            new_password = data['new_password']
+            
+            # ตรวจสอบรหัสผ่านปัจจุบัน
+            if not user.check_password(current_password):
+                return Response({'error': 'รหัสผ่านปัจจุบันไม่ถูกต้อง'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # ตรวจสอบความยาวรหัสผ่านใหม่
+            if len(new_password) < 6:
+                return Response({'error': 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            user.set_password(new_password)
+        
+        # อัพเดทคำถามความปลอดภัย
+        if 'security_question_1' in data and 'security_answer_1' in data:
+            question_1 = data['security_question_1'].strip()
+            answer_1 = data['security_answer_1'].strip()
+            
+            if question_1 and answer_1:
+                user.security_question_1 = question_1
+                user.security_answer_1 = answer_1.lower()  # เก็บเป็นตัวพิมพ์เล็ก
+        
+        if 'security_question_2' in data and 'security_answer_2' in data:
+            question_2 = data['security_question_2'].strip()
+            answer_2 = data['security_answer_2'].strip()
+            
+            if question_2 and answer_2:
+                user.security_question_2 = question_2
+                user.security_answer_2 = answer_2.lower()  # เก็บเป็นตัวพิมพ์เล็ก
+        
+        # บันทึกการเปลี่ยนแปลง
+        user.save()
+        
+        # อัพเดท localStorage userData
+        response_data = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "user_type": user.user_type,
+            "date_joined": user.date_joined,
+            "last_login": user.last_login,
+            "export_limits": get_export_limits_info(request)
+        }
+        
+        return Response({
+            'success': True,
+            'message': 'อัพเดทโปรไฟล์สำเร็จ',
+            'user': response_data
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': f'เกิดข้อผิดพลาด: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

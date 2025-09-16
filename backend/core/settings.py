@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -175,3 +176,13 @@ CSRF_TRUSTED_ORIGINS = [
 SESSION_COOKIE_AGE = 3600  # 1 ชั่วโมง (3600 วินาที)
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),     # Token หลักอายุ 15 นาที
+    'REFRESH_TOKEN_LIFETIME': timedelta(hours=24),      # Token สำรองอายุ 1 วัน
+    'ROTATE_REFRESH_TOKENS': False,                     # ไม่หมุนเวียน refresh token
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+}

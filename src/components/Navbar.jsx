@@ -1,5 +1,6 @@
 // 🖤 Clean Dark Theme Navbar - เรียบๆ ไม่มี effects ฟุ้งๆ
 import React, { useEffect, useState } from "react";
+import UserProfileModal from './UserProfile/UserProfileModal';
 import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -10,13 +11,15 @@ import {
   faCog, 
   faSignOutAlt, 
   faSignInAlt,
-  faSpinner
+  faSpinner,
+  faEdit
 } from '@fortawesome/free-solid-svg-icons';
 import axios from "axios";
 
 export default function Navbar() {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -247,6 +250,19 @@ export default function Navbar() {
       display: "flex",
       alignItems: "center",
       gap: "8px"
+    },
+    profileButton: {
+      backgroundColor: "transparent",
+      border: "none",
+      color: "#6b7280",
+      cursor: "pointer",
+      padding: "4px",
+      borderRadius: "4px",
+      fontSize: "14px",
+      marginLeft: "8px",
+      display: "flex",
+      alignItems: "center",
+      transition: "color 0.2s"
     }
   };
 
@@ -277,6 +293,13 @@ export default function Navbar() {
                 {getUserDisplayName()}
               </span>
               {getUserRoleBadge()}
+                <button 
+                  onClick={() => setShowProfileModal(true)}
+                  style={styles.profileButton}
+                  title="แก้ไขโปรไฟล์"
+                >
+                  <FontAwesomeIcon icon={faEdit} />
+                </button>
             </div>
             
             {/* Admin Panel Link */}
@@ -300,6 +323,15 @@ export default function Navbar() {
           </Link>
         )}
       </div>
+          {/* Profile Modal */}
+          {showProfileModal && (
+          <UserProfileModal 
+            isOpen={showProfileModal}
+            onClose={() => setShowProfileModal(false)}
+            userData={userData}
+            onUpdate={checkAuthStatus}
+          />
+        )}
     </nav>
   );
 }

@@ -4,7 +4,8 @@ from .views import (
     user_activity_logs, CustomTokenObtainPairView, jwt_logout_view,
     log_conversion, log_export, log_upload, get_export_limits,
     forgot_password, verify_security_answers, reset_password, get_security_questions,
-    get_user_password, admin_change_password, get_user_security_questions, update_user_security_questions
+    get_user_password, admin_change_password, get_user_security_questions, update_user_security_questions,
+    update_profile
 )
 from .admin_views import (
     admin_dashboard_stats, admin_users_list, admin_user_detail, admin_activity_logs
@@ -18,6 +19,7 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # JWT Refresh
     path('token/logout/', jwt_logout_view, name='jwt_logout'),  # JWT Logout with logging
     path('user/', UserView.as_view(), name='user'),
+    path('profile/', update_profile, name='update_profile'),
     
     # Session-based authentication (สำรอง)
     path('login/', login_view, name='session_login'),  # Session Login
