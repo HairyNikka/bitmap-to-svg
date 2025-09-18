@@ -765,3 +765,42 @@ def update_profile(request):
         return Response({
             'error': f'เกิดข้อผิดพลาด: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def admin_promote_user(request, user_id):
+    """API สำหรับ admin เปลี่ยนตำแหน่งผู้ใช้"""
+    if request.user.user_type not in ['admin', 'superuser']:
+        return Response({'error': 'Admin permission required'}, status=403)
+    
+    new_user_type = request.data.get('user_type')
+    if new_user_type not in ['user', 'admin', 'superuser']:
+        return Response({'error': 'Invalid user type'}, status=400)
+    
+    try:
+        target_user = User.objects.get(id=user_id)
+        
+        # Admin ไม่สามารถเปลี่ยนตำแหน่ง admin/superuser ได้
+        if request.user.user_type == 'admin' and target_user.user_type in ['admin', 'superuser']:
+            return Response({'error': 'ไม่มีสิทธิ์แก้ไข admin/superuser'}, status=403)
+        
+        old_user_type = target_user.user_type
+        target_user.user_type = new_user_type
+        target_user.save()
+        
+        # บันทึก log การเลื่อนตำแหน่ง
+        log_user_activity(request.user, 'admin_promote_user', request, details={
+            'target_user': target_user.username,
+            'old_type': old_user_type,
+            'new_type': new_user_type,
+            'changed_by': request.user.username
+        })
+        
+        return Response({
+            'success': True,
+            'message': f'เปลี่ยนตำแหน่งของ {target_user.username} สำเร็จ'
+        })
+        
+    except User.DoesNotExist:
+        return Response({'error': 'ไม่พบผู้ใช้'}, status=404)
+

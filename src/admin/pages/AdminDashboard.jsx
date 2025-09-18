@@ -9,7 +9,6 @@ import {
   faSignInAlt, 
   faUserPlus,
   faChartLine,
-  faCog,
   faUser,
   faUserShield,
   faUserTie,

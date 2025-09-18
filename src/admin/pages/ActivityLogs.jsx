@@ -2,13 +2,19 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import axios from 'axios';
-import { exportActivityLogsToCSV } from '../utils/exportCSV'; // 🆕 Import PDF utility
+import { exportActivityLogsToCSV } from '../utils/exportCSV'; // Import PDF utility
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faUserPlus, faSignInAlt, faSignOutAlt, faImage, 
+  faFileImage, faFilePdf, faTrash, faEdit, faArrowUp, 
+  faKey, faShield 
+} from '@fortawesome/free-solid-svg-icons';
 
 export default function ActivityLogs() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [exportingPdf, setExportingPdf] = useState(false); // 🆕 Export loading state
+  const [exportingCsv, setExportingCsv] = useState(false); // Export loading state
   
   // Filters & Search
   const [actionFilter, setActionFilter] = useState('');
@@ -36,9 +42,16 @@ export default function ActivityLogs() {
       let dateFromParam = customDateFrom;
       let dateToParam = customDateTo;
       
-      const today = new Date();
-      const formatDate = (date) => date.toISOString().split('T')[0];
-      
+      const getBangkokDate = () => {
+        const bangkok = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
+        return bangkok;
+      };
+      const formatDate = (date) => {
+        return date.toISOString().split('T')[0];
+      };
+
+      const today = getBangkokDate();
+
       switch (dateFilter) {
         case 'today':
           dateFromParam = formatDate(today);
@@ -111,7 +124,7 @@ export default function ActivityLogs() {
 
 // 📊 Export CSV Function (เปลี่ยนจาก PDF)
 const handleExportCSV = async () => {
-  setExportingPdf(true); // ใช้ state เดิมก่อน
+  setExportingCsv(true); // ใช้ state เดิมก่อน
   
   try {
     const filters = {
@@ -134,27 +147,28 @@ const handleExportCSV = async () => {
     console.error('Export error:', error);
     alert('ไม่สามารถส่งออก CSV ได้ กรุณาลองใหม่อีกครั้ง');
   } finally {
-    setExportingPdf(false);
+    setExportingCsv(false);
   }
 };
 
   // รายการ actions ที่เป็นไปได้
   const actionOptions = [
     { value: '', label: 'ทุกการกระทำ' },
-    { value: 'register', label: '📝 สมัครสมาชิก' },
-    { value: 'login', label: '🔐 เข้าสู่ระบบ' },
-    { value: 'logout', label: '🚪 ออกจากระบบ' },
-    { value: 'convert_image', label: '🔄 แปลงภาพ' },
-    { value: 'export_png', label: '📁 ส่งออก PNG' },
-    { value: 'export_svg', label: '📁 ส่งออก SVG' },
-    { value: 'export_pdf', label: '📁 ส่งออก PDF' },
-    { value: 'export_eps', label: '📁 ส่งออก EPS' },
-    { value: 'admin_delete_user', label: '🗑️ ลบผู้ใช้' },
-    { value: 'admin_edit_user', label: '✏️ แก้ไขข้อมูลผู้ใช้' },
-    { value: 'admin_promote_user', label: '⬆️ เลื่อนตำแหน่งผู้ใช้' },
-    { value: 'admin_view_logs', label: '👁️ ดูบันทึกการใช้งาน' },
-    { value: 'password_reset', label: '🔑 เปลี่ยนรหัสผ่าน' },
-    { value: 'security_questions_verified', label: '🛡️ ยืนยันคำถามความปลอดภัย' }
+    { value: 'register', label: 'สมัครสมาชิก' },
+    { value: 'login', label: 'เข้าสู่ระบบ' },
+    { value: 'logout', label: 'ออกจากระบบ' },
+    { value: 'convert_image', label: 'แปลงภาพ' },
+    { value: 'export_png', label: 'ส่งออก PNG' },
+    { value: 'export_svg', label: 'ส่งออก SVG' },
+    { value: 'export_pdf', label: 'ส่งออก PDF' },
+    { value: 'export_eps', label: 'ส่งออก EPS' },
+    { value: 'admin_delete_user', label: 'ลบผู้ใช้' },
+    { value: 'admin_edit_user', label: 'แก้ไขข้อมูลผู้ใช้' },
+    { value: 'admin_promote_user', label: 'เลื่อนตำแหน่งผู้ใช้' },
+    { value: 'password_reset', label: 'เปลี่ยนรหัสผ่าน' },
+    { value: 'security_questions_verified', label: 'ยืนยันคำถามความปลอดภัย' },
+    { value: 'admin_change_password', label: 'เปลี่ยนรหัสผ่านโดย Admin' },
+    { value: 'admin_edit_security_questions', label: 'แก้ไขคำถามความปลอดภัยโดย Admin' }
   ];
 
   const dateOptions = [
@@ -170,22 +184,23 @@ const handleExportCSV = async () => {
 
   const getActionIcon = (action) => {
     const iconMap = {
-      'register': '📝',
-      'login': '🔐',
-      'logout': '🚪',
-      'convert_image': '🔄',
-      'export_png': '📁',
-      'export_svg': '📁',
-      'export_pdf': '📁',
-      'export_eps': '📁',
-      'admin_delete_user': '🗑️',
-      'admin_edit_user': '✏️',
-      'admin_promote_user': '⬆️',
-      'admin_view_logs': '👁️',
-      'password_reset': '🔑',
-      'security_questions_verified': '🛡️'
+      'register': faUserPlus,
+      'login': faSignInAlt,
+      'logout': faSignOutAlt,
+      'convert_image': faImage,
+      'export_png': faFileImage,
+      'export_svg': faFileImage,
+      'export_pdf': faFilePdf,
+      'export_eps': faFileImage,
+      'admin_delete_user': faTrash,
+      'admin_edit_user': faEdit,
+      'admin_promote_user': faArrowUp,
+      'password_reset': faKey,
+      'security_questions_verified': faShield,
+      'admin_change_password': faEdit,
+      'admin_edit_security_questions': faEdit
     };
-    return iconMap[action] || '📋';
+    return <FontAwesomeIcon icon={iconMap[action] || faFileImage} size="sm" />;
   };
 
   const getActionColor = (action) => {
@@ -397,11 +412,12 @@ const handleExportCSV = async () => {
       gap: '8px'
     },
     actionBadge: {
-      padding: '4px 8px',
+      padding: '2px 6px',
       borderRadius: '4px',
       fontSize: '12px',
       fontWeight: '600',
-      color: '#ffffff'
+      color: '#ffffff',
+      maxWidth: '140px'  
     },
     userBadge: {
       backgroundColor: '#495057',
@@ -618,16 +634,16 @@ const handleExportCSV = async () => {
               
               <button
                 onClick={handleExportCSV}
-                disabled={exportingPdf || logs.length === 0}
+                disabled={exportingCsv || logs.length === 0}
                 style={{
                   ...styles.exportButton,
-                  ...(exportingPdf || logs.length === 0 ? styles.exportButtonDisabled : {})
+                  ...(exportingCsv || logs.length === 0 ? styles.exportButtonDisabled : {})
                 }}
               >
-                {exportingPdf ? (
+                {exportingCsv ? (
                   <>
                     <span>⏳</span>
-                    กำลังสร้าง PDF...
+                    กำลังสร้าง CSV...
                   </>
                 ) : (
                   <>

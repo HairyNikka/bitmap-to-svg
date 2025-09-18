@@ -450,14 +450,21 @@ class UserActivityLog(models.Model):
     
     @property
     def formatted_timestamp(self):
-        """Format timestamp สำหรับแสดงผลภาษาไทย"""
-        return self.timestamp.strftime('%d/%m/%Y %H:%M:%S')
-    
+        """Format timestamp สำหรับแสดงผลภาษาไทยตามเวลา Bangkok"""
+        from zoneinfo import ZoneInfo
+        bangkok_tz = ZoneInfo("Asia/Bangkok")
+        bangkok_time = self.timestamp.astimezone(bangkok_tz)
+        return bangkok_time.strftime('%d/%m/%Y %H:%M:%S')
+
     @property 
     def time_ago(self):
-        """แสดงเวลาที่ผ่านมา"""
-        now = timezone.now()
-        diff = now - self.timestamp
+        """แสดงเวลาที่ผ่านมาตามเวลา Bangkok"""
+        from zoneinfo import ZoneInfo
+        bangkok_tz = ZoneInfo("Asia/Bangkok")
+        
+        now_bangkok = timezone.now().astimezone(bangkok_tz)
+        timestamp_bangkok = self.timestamp.astimezone(bangkok_tz)
+        diff = now_bangkok - timestamp_bangkok
         
         if diff.days > 0:
             return f"{diff.days} วันที่แล้ว"

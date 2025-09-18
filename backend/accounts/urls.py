@@ -5,7 +5,7 @@ from .views import (
     log_conversion, log_export, log_upload, get_export_limits,
     forgot_password, verify_security_answers, reset_password, get_security_questions,
     get_user_password, admin_change_password, get_user_security_questions, update_user_security_questions,
-    update_profile
+    update_profile, admin_promote_user
 )
 from .admin_views import (
     admin_dashboard_stats, admin_users_list, admin_user_detail, admin_activity_logs
@@ -51,4 +51,5 @@ urlpatterns = [
     path('admin/users/<int:user_id>/password/change/', admin_change_password, name='admin_change_password'),
     path('admin/users/<int:user_id>/security-questions/', get_user_security_questions, name='get_user_security_questions'),
     path('admin/users/<int:user_id>/security-questions/update/', update_user_security_questions, name='update_user_security_questions'),
+    path('admin/promote-user/<int:user_id>/', admin_promote_user, name='admin_promote_user'),
 ]

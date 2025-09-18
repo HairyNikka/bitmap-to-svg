@@ -89,8 +89,16 @@ const processDateFilters = (filters) => {
   let dateFromParam = customDateFrom;
   let dateToParam = customDateTo;
   
-  const today = new Date();
-  const formatDate = (date) => date.toISOString().split('T')[0];
+  const getBangkokDate = () => {
+    const bangkok = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
+    return bangkok;
+  };
+  
+  const formatDate = (date) => {
+    return date.toISOString().split('T')[0];
+  };
+  
+  const today = getBangkokDate(); 
   
   switch (dateFilter) {
     case 'today':

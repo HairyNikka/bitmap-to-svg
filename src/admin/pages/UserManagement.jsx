@@ -65,14 +65,24 @@ export default function UserManagement() {
     try {
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       
-      // ส่งข้อมูลไปยัง API ที่เหมาะสม
+      // ตรวจสอบว่ามีการเปลี่ยนเเปลง user_type
+      const isPromoting = userData.user_type && userData.user_type !== editModal.user.user_type;
+
       if (saveType === 'basic') {
-        await axios.put(`http://localhost:8000/api/accounts/admin/users/${editModal.user.id}/`, 
-          userData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        if (isPromoting) {
+          // ใช้ promote API แทน
+          await axios.put(`http://localhost:8000/api/accounts/admin/promote-user/${editModal.user.id}/`, 
+            { user_type: userData.user_type },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        } else {
+          // ใช้ general user update API
+          await axios.put(`http://localhost:8000/api/accounts/admin/users/${editModal.user.id}/`, 
+            userData, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }
       }
-      
       // Refresh data
       fetchUsers();
       
