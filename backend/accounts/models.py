@@ -25,7 +25,7 @@ class User(AbstractUser):
         help_text='ระดับสิทธิ์การใช้งาน'
     )
     
-    # 🔄 เปลี่ยนจากการแปลงเป็นการส่งออก
+    # เปลี่ยนจากการแปลงเป็นการส่งออก
     daily_export_limit = models.IntegerField(
         default=10,  # เปลี่ยนจาก 50 เป็น 10 สำหรับ user ปกติ
         validators=[MinValueValidator(1), MaxValueValidator(1000)],
@@ -41,24 +41,6 @@ class User(AbstractUser):
         null=True, 
         blank=True,
         verbose_name='วันที่ส่งออกครั้งล่าสุด'
-    )
-    
-    # ⚠️ เก็บ conversion fields ไว้ก่อน (backward compatibility)
-    daily_conversion_limit = models.IntegerField(
-        default=50,
-        validators=[MinValueValidator(1), MaxValueValidator(1000)],
-        verbose_name='จำกัดการแปลงต่อวัน (เก่า)',
-        help_text='เก็บไว้เพื่อ backward compatibility'
-    )
-    daily_conversions_used = models.IntegerField(
-        default=0,
-        validators=[MinValueValidator(0)],
-        verbose_name='จำนวนการแปลงที่ใช้วันนี้ (เก่า)'
-    )
-    last_conversion_date = models.DateField(
-        null=True, 
-        blank=True,
-        verbose_name='วันที่แปลงครั้งล่าสุด (เก่า)'
     )
     
     # สถิติการใช้งาน
@@ -167,31 +149,6 @@ class User(AbstractUser):
             
         return max(0, self.daily_export_limit - self.daily_exports_used)
     
-    # ⚠️ เก็บ conversion methods เดิมไว้ (backward compatibility)
-    def reset_daily_conversions_if_new_day(self):
-        """Reset การนับรายวันถ้าเป็นวันใหม่"""
-        today = timezone.now().date()
-        if self.last_conversion_date != today:
-            self.daily_conversions_used = 0
-            self.last_conversion_date = today
-            self.save()
-    
-    def can_convert_today(self):
-        """ตรวจสอบว่าสามารถแปลงภาพได้อีกหรือไม่ (เก่า)"""
-        # ตอนนี้การแปลงไม่มีขีดจำกัดแล้ว เฉพาะการส่งออกเท่านั้น
-        return True
-    
-    def increment_conversion_count(self):
-        """เพิ่มจำนวนการแปลงรายวัน (เก่า)"""
-        self.reset_daily_conversions_if_new_day()
-        self.daily_conversions_used += 1
-        self.total_conversions += 1
-        self.save()
-    
-    def get_remaining_conversions_today(self):
-        """ดูจำนวนการแปลงที่เหลือวันนี้ (เก่า)"""
-        # ส่งค่าไม่จำกัดเพราะไม่ได้ใช้แล้ว
-        return -1  # ✅ ใช้ -1 แทน float('inf')
     
     # Other methods (ไม่เปลี่ยน)
     def is_admin_or_superuser(self):
@@ -410,6 +367,9 @@ class UserActivityLog(models.Model):
         ('security_questions_verified', 'ยืนยันคำถามความปลอดภัย'), 
         ('admin_change_password', 'เปลี่ยนรหัสผ่านโดย Admin'),
         ('admin_edit_security_questions', 'แก้ไขคำถามความปลอดภัยโดย Admin'),
+        ('profile_email_change', 'เปลี่ยนอีเมล (ผ่านโปรไฟล์)'),
+        ('profile_password_change', 'เปลี่ยนรหัสผ่าน (ผ่านโปรไฟล์)'),  
+        ('profile_security_questions_change', 'เปลี่ยนคำถามความปลอดภัย (ผ่านโปรไฟล์)'),
     ]
     
     user = models.ForeignKey(
@@ -419,7 +379,7 @@ class UserActivityLog(models.Model):
         verbose_name='ผู้ใช้'
     )
     action = models.CharField(
-        max_length=30, 
+        max_length=50, 
         choices=ACTION_CHOICES,
         verbose_name='การกระทำ'
     )

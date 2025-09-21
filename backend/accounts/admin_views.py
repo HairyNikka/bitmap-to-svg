@@ -12,6 +12,7 @@ from .models import User, UserActivityLog, SystemLog
 from .serializers import UserSerializer, UserActivityLogSerializer
 from django.contrib.auth import get_user_model
 
+
 User = get_user_model()
 
 # 🔒 Permission Decorator สำหรับ Admin
@@ -210,39 +211,96 @@ def admin_user_detail(request, user_id):
         return Response(user_data)
     
     elif request.method == 'PUT':
-        # แก้ไขข้อมูลผู้ใช้
-        allowed_fields = ['email', 'first_name', 'last_name', 'is_active', 'daily_conversion_limit']
+        # แก้ไขข้อมูลผู้ใช้ พร้อม detailed change tracking
+        allowed_fields = ['email', 'first_name', 'last_name', 'is_active']
         
         # เฉพาะ superuser ถึงจะแก้ไข user_type ได้
         if request.user.user_type == 'superuser':
             allowed_fields.append('user_type')
         
+        changes_made = []  # เก็บรายการการเปลี่ยนแปลง
         updated_data = {}
+        
         for field in allowed_fields:
             if field in request.data:
-                updated_data[field] = request.data[field]
+                old_value = getattr(user, field)
+                new_value = request.data[field]
+                
+                # ตรวจสอบว่าเปลี่ยนจริงหรือไม่
+                if old_value != new_value:
+                    updated_data[field] = new_value
+                    changes_made.append({
+                        'field': field,
+                        'old_value': old_value,
+                        'new_value': new_value
+                    })
         
         # ป้องกันการแก้ไข superuser โดย admin
         if 'user_type' in updated_data and request.user.user_type == 'admin':
             if updated_data['user_type'] in ['admin', 'superuser']:
                 return Response({'error': 'Admin ไม่สามารถเลื่อนเป็น admin หรือ superuser ได้'}, status=status.HTTP_403_FORBIDDEN)
         
+        if not changes_made:
+            return Response({'message': 'ไม่มีการเปลี่ยนแปลง'}, status=status.HTTP_200_OK)
+        
+        # อัปเดตข้อมูล
         serializer = UserSerializer(user, data=updated_data, partial=True)
         if serializer.is_valid():
             serializer.save()
             
             # บันทึก log การแก้ไข
-            from .views import log_user_activity
-            log_user_activity(request.user, 'admin_edit_user', request, details={
-                'target_user': user.username,
-                'changes': updated_data
-            })
+            from .views.utils import log_user_activity
+            
+            # สร้าง summary ของการเปลี่ยนแปลง
+            change_summaries = []
+            for change in changes_made:
+                field_name = {
+                    'email': 'อีเมล',
+                    'first_name': 'ชื่อ',
+                    'last_name': 'นามสกุล',
+                    'is_active': 'สถานะ',
+                    'user_type': 'ประเภทผู้ใช้'
+                }.get(change['field'], change['field'])
+                
+                if change['field'] == 'is_active':
+                    old_display = 'Active' if change['old_value'] else 'Inactive'
+                    new_display = 'Active' if change['new_value'] else 'Inactive'
+                    summary = f"{field_name}: {old_display} → {new_display}"
+                elif change['field'] == 'user_type':
+                    # แยก log ออกมาเป็น admin_promote_user
+                    continue
+                else:
+                    summary = f"{field_name}: {change['old_value']} → {change['new_value']}"
+                
+                change_summaries.append(summary)
+            
+            # Log การแก้ไขข้อมูลทั่วไป
+            if change_summaries:
+                log_user_activity(request.user, 'admin_edit_user', request, details={
+                    'target_user': user.username,
+                    'target_user_type': user.user_type,
+                    'changed_by': request.user.username,
+                    'changes': changes_made,
+                    'change_summary': '; '.join(change_summaries),
+                    'fields_changed': len(change_summaries)
+                })
+            
+            # Log การเปลี่ยนประเภทผู้ใช้แยกต่างหาก
+            user_type_change = next((c for c in changes_made if c['field'] == 'user_type'), None)
+            if user_type_change:
+                log_user_activity(request.user, 'admin_promote_user', request, details={
+                    'target_user': user.username,
+                    'old_type': user_type_change['old_value'],
+                    'new_type': user_type_change['new_value'],
+                    'changed_by': request.user.username,
+                    'change_summary': f"เลื่อนตำแหน่ง: {user_type_change['old_value']} → {user_type_change['new_value']}"
+                })
             
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     elif request.method == 'DELETE':
-        # ลบผู้ใช้
+        # ลบผู้ใช้ พร้อม detailed logging
         if user == request.user:
             return Response({'error': 'ไม่สามารถลบตัวเองได้'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -253,13 +311,33 @@ def admin_user_detail(request, user_id):
         if user.user_type == 'superuser':
             return Response({'error': 'ไม่สามารถลบ superuser ได้'}, status=status.HTTP_403_FORBIDDEN)
         
+        # เก็บข้อมูลก่อนลบ
+        deleted_user_data = {
+            'username': user.username,
+            'email': user.email,
+            'user_type': user.user_type,
+            'total_conversions': getattr(user, 'total_conversions', 0),
+            'total_exports': getattr(user, 'total_exports', 0),
+            'date_joined': user.date_joined.strftime('%Y-%m-%d'),
+            'is_active': user.is_active
+        }
+        
         username = user.username
         user.delete()
         
         # บันทึก log การลบ
-        from .views import log_user_activity
+        from .views.utils import log_user_activity
         log_user_activity(request.user, 'admin_delete_user', request, details={
-            'deleted_user': username
+            'deleted_user': username,
+            'deleted_user_email': deleted_user_data['email'],
+            'deleted_user_type': deleted_user_data['user_type'],
+            'deleted_by': request.user.username,
+            'user_stats': {
+                'total_conversions': deleted_user_data['total_conversions'],
+                'total_exports': deleted_user_data['total_exports'],
+                'member_since': deleted_user_data['date_joined']
+            },
+            'change_summary': f"ลบผู้ใช้ '{username}' ({deleted_user_data['user_type']}) - {deleted_user_data['email']}"
         })
         
         return Response({'message': f'ลบผู้ใช้ {username} เรียบร้อยแล้ว'})
@@ -286,6 +364,10 @@ def admin_activity_logs(request):
     user_filter = request.GET.get('user', '')
     if user_filter:
         logs = logs.filter(user__username__icontains=user_filter)
+        
+    user_type_filter = request.GET.get('user_type', '')
+    if user_type_filter:
+        logs = logs.filter(user__user_type=user_type_filter)
     
     # Date range filter
     date_from = request.GET.get('date_from', '')
@@ -317,3 +399,4 @@ def admin_activity_logs(request):
         },
         'available_actions': [choice[0] for choice in UserActivityLog.ACTION_CHOICES]
     })
+

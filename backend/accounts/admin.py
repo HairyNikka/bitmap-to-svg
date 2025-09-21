@@ -1,159 +1,286 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.utils import timezone
+from django.db import models
+from datetime import timedelta
 from .models import User, UserActivityLog, GuestSession
+
+
+class ExportUsageFilter(admin.SimpleListFilter):
+    """Custom filter for export usage levels"""
+    title = 'Export Usage'
+    parameter_name = 'export_usage'
+    
+    def lookups(self, request, model_admin):
+        return (
+            ('high', 'High Usage (>80%)'),
+            ('normal', 'Normal Usage (50-80%)'),
+            ('low', 'Low Usage (<50%)'),
+            ('unlimited', 'Unlimited Users'),
+        )
+    
+    def queryset(self, request, queryset):
+        if self.value() == 'high':
+            return queryset.extra(
+                where=["daily_export_limit > 0 AND daily_exports_used > daily_export_limit * 0.8"]
+            )
+        elif self.value() == 'normal':
+            return queryset.extra(
+                where=["daily_export_limit > 0 AND daily_exports_used >= daily_export_limit * 0.5 AND daily_exports_used <= daily_export_limit * 0.8"]
+            )
+        elif self.value() == 'low':
+            return queryset.extra(
+                where=["daily_export_limit > 0 AND daily_exports_used < daily_export_limit * 0.5"]
+            )
+        elif self.value() == 'unlimited':
+            return queryset.filter(user_type__in=['admin', 'superuser'])
+
+
+class UserActivityLogInline(admin.TabularInline):
+    """Inline display of recent user activity logs"""
+    model = UserActivityLog
+    fields = ['action_display', 'timestamp_formatted', 'details_summary']
+    readonly_fields = ['action_display', 'timestamp_formatted', 'details_summary']
+    extra = 0
+    max_num = 5
+    ordering = ['-timestamp']
+    
+    def action_display(self, obj):
+        return obj.get_action_display()
+    action_display.short_description = 'Action'
+    
+    def timestamp_formatted(self, obj):
+        return obj.timestamp.strftime('%Y-%m-%d %H:%M')
+    timestamp_formatted.short_description = 'Time'
+    
+    def details_summary(self, obj):
+        if obj.details:
+            if isinstance(obj.details, dict):
+                keys = list(obj.details.keys())[:2]
+                return f"{', '.join(keys)}..."
+            return str(obj.details)[:30] + "..."
+        return "-"
+    details_summary.short_description = 'Details'
+
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    # ✅ อัปเดตให้แสดง export fields และ emoji
+    """Enhanced User Admin with export tracking and security features"""
+    
     list_display = [
-        'username', 'email', 'user_type_display', 'active_status', 
-        'export_usage_display', 'total_exports', 'date_joined'
+        'username', 'email', 'user_type_display', 'status_display', 
+        'export_usage_display', 'total_exports', 'last_login_formatted', 'date_joined_formatted'
     ]
     
-    # ฟิลเตอร์ด้านข้าง
-    list_filter = ['user_type', 'is_active', 'date_joined', 'last_login']
+    list_filter = [
+        'user_type', 'is_active', ExportUsageFilter, 'date_joined', 'last_login'
+    ]
     
-    # ค้นหาได้
     search_fields = ['username', 'email', 'first_name', 'last_name']
-    
-    # เรียงลำดับ
     ordering = ['-date_joined']
     
-    # ✅ อัปเดต fieldsets ให้แสดง export fields
     fieldsets = BaseUserAdmin.fieldsets + (
-        ('📊 Export Limits (ปัจจุบัน)', {
+        ('Export Management', {
             'fields': ('user_type', 'daily_export_limit', 'daily_exports_used', 
-                    'last_export_date', 'total_exports')
+                      'last_export_date', 'total_exports'),
+            'description': 'Current export limits and usage statistics'
         }),
-        ('🔐 Security Questions (คำถามความปลอดภัย)', {
-            'fields': ('security_question_1', 'security_answer_1', 
-                    'security_question_2', 'security_answer_2'),
-            'description': 'คำถามสำหรับรีเซ็ตรหัสผ่าน'
-        }),
-    )
-    
-    # เพิ่ม user ใหม่ - เพิ่ม security questions
-    add_fieldsets = BaseUserAdmin.add_fieldsets + (
-        ('ข้อมูลเพิ่มเติม', {
-            'fields': ('email', 'user_type', 'daily_export_limit')
-        }),
-        ('🔐 Security Questions (แนะนำ)', {
+        ('Security Questions', {
             'fields': ('security_question_1', 'security_answer_1', 
                       'security_question_2', 'security_answer_2'),
-            'classes': ('collapse',),  # ซ่อนไว้ ให้เลือกตั้งหรือไม่ก็ได้
-            'description': 'ตั้งคำถามความปลอดภัยสำหรับรีเซ็ตรหัสผ่าน (ไม่บังคับ)'
+            'classes': ('collapse',),
+            'description': 'Security questions for password recovery'
         }),
     )
     
-    # ✅ Custom display functions
-    def active_status(self, obj):
-        """แสดง Active status พร้อม emoji"""
-        if obj.is_active:
-            return "✅ Active"
-        else:
-            return "❌ Inactive"
-    active_status.short_description = 'สถานะ'
-    # ❌ ลบบรรทัดนี้ออก: active_status.boolean = True
+    add_fieldsets = BaseUserAdmin.add_fieldsets + (
+        ('Additional Information', {
+            'fields': ('email', 'user_type', 'daily_export_limit')
+        }),
+        ('Security Questions (Optional)', {
+            'fields': ('security_question_1', 'security_answer_1', 
+                      'security_question_2', 'security_answer_2'),
+            'classes': ('collapse',),
+            'description': 'Set security questions for password recovery (optional)'
+        }),
+    )
+    
+    inlines = [UserActivityLogInline]
+    actions = ['reset_export_limits', 'promote_to_admin', 'export_user_stats']
+    
+    # Custom display methods
+    def status_display(self, obj):
+        """Display user active status"""
+        return "Active" if obj.is_active else "Inactive"
+    status_display.short_description = 'Status'
     
     def user_type_display(self, obj):
-        """แสดง User Type พร้อม emoji"""
-        types = {
-            'superuser': '👑 Superuser',
-            'admin': '🛡️ Admin', 
-            'user': '👤 User'
-        }
-        return types.get(obj.user_type, '👤 User')
-    user_type_display.short_description = 'ประเภทผู้ใช้'
+        """Display user type with proper formatting"""
+        return obj.get_user_type_display()
+    user_type_display.short_description = 'User Type'
     
     def export_usage_display(self, obj):
-        """แสดงการใช้งาน export เป็น progress"""
+        """Display export usage as progress indicator"""
         if obj.user_type in ['admin', 'superuser']:
-            return "∞ ไม่จำกัด"
+            return "Unlimited"
         
         if obj.daily_export_limit == 0:
-            return "∞ ไม่จำกัด"
+            return "Unlimited"
         
         percentage = (obj.daily_exports_used / obj.daily_export_limit) * 100
         
         if percentage >= 100:
-            return f"🔴 {obj.daily_exports_used}/{obj.daily_export_limit} (เต็ม)"
+            return f"{obj.daily_exports_used}/{obj.daily_export_limit} (Full)"
         elif percentage >= 80:
-            return f"🟡 {obj.daily_exports_used}/{obj.daily_export_limit} ({percentage:.0f}%)"
+            return f"{obj.daily_exports_used}/{obj.daily_export_limit} ({percentage:.0f}%)"
         else:
-            return f"🟢 {obj.daily_exports_used}/{obj.daily_export_limit} ({percentage:.0f}%)"
-    export_usage_display.short_description = 'การใช้งาน Export'
+            return f"{obj.daily_exports_used}/{obj.daily_export_limit} ({percentage:.0f}%)"
+    export_usage_display.short_description = 'Export Usage'
     
-    # สิทธิ์การดู (ตาม user_type)
+    def last_login_formatted(self, obj):
+        """Format last login date"""
+        return obj.last_login.strftime('%Y-%m-%d %H:%M') if obj.last_login else 'Never'
+    last_login_formatted.short_description = 'Last Login'
+    
+    def date_joined_formatted(self, obj):
+        """Format join date"""
+        return obj.date_joined.strftime('%Y-%m-%d')
+    date_joined_formatted.short_description = 'Joined'
+    
+    # Permission controls
     def get_queryset(self, request):
+        """Filter queryset based on user permissions"""
         qs = super().get_queryset(request)
         if request.user.user_type == 'superuser':
-            return qs  # เห็นทุกคน
+            return qs
         elif request.user.user_type == 'admin':
-            return qs.exclude(user_type='superuser')  # ไม่เห็น superuser
+            return qs.exclude(user_type='superuser')
         else:
-            return qs.filter(id=request.user.id)  # เห็นแค่ตัวเอง
+            return qs.filter(id=request.user.id)
     
-    # สิทธิ์การลบ
     def has_delete_permission(self, request, obj=None):
+        """Control delete permissions"""
         if not obj:
             return True
         
-        # Superuser ลบได้ทุกคน (ยกเว้นตัวเอง)
         if request.user.user_type == 'superuser':
             return obj != request.user
         
-        # Admin ลบได้แค่ user ทั่วไป
         if request.user.user_type == 'admin':
             return obj.user_type == 'user'
             
-        return False  # user ทั่วไปลบไม่ได้
+        return False
     
-    # ✅ Actions สำหรับจัดการ users
-    actions = ['reset_export_limits', 'promote_to_admin']
+    def get_form(self, request, obj=None, **kwargs):
+        """Customize form based on user permissions"""
+        form = super().get_form(request, obj, **kwargs)
+        
+        # Hide sensitive fields from non-superusers
+        if request.user.user_type != 'superuser':
+            sensitive_fields = ['is_superuser', 'user_permissions', 'groups']
+            for field in sensitive_fields:
+                if field in form.base_fields:
+                    del form.base_fields[field]
+        
+        return form
     
+    # Custom actions
     def reset_export_limits(self, request, queryset):
-        """Reset export limits สำหรับ users ที่เลือก"""
+        """Reset export limits for selected users"""
         count = 0
         for user in queryset:
             user.daily_exports_used = 0
             user.last_export_date = None
             user.save()
             count += 1
-        self.message_user(request, f'🔄 รีเซ็ต export limits สำหรับ {count} ผู้ใช้แล้ว')
-    reset_export_limits.short_description = "🔄 รีเซ็ต Export Limits"
+        self.message_user(request, f'Reset export limits for {count} users')
+    reset_export_limits.short_description = "Reset Export Limits"
     
     def promote_to_admin(self, request, queryset):
-        """เลื่อนตำแหน่งเป็น admin"""
+        """Promote users to admin (superuser only)"""
         if request.user.user_type != 'superuser':
-            self.message_user(request, '❌ เฉพาะ Superuser เท่านั้นที่สามารถเลื่อนตำแหน่งได้!', level='ERROR')
+            self.message_user(request, 'Only superusers can promote users to admin!', level='ERROR')
             return
         
         count = queryset.filter(user_type='user').update(user_type='admin')
-        self.message_user(request, f'⬆️ เลื่อนตำแหน่งเป็น Admin สำหรับ {count} ผู้ใช้แล้ว')
-    promote_to_admin.short_description = "⬆️ เลื่อนเป็น Admin"
+        self.message_user(request, f'Promoted {count} users to admin')
+    promote_to_admin.short_description = "Promote to Admin"
+    
+    def export_user_stats(self, request, queryset):
+        """Export user statistics as CSV"""
+        import csv
+        from django.http import HttpResponse
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="user_stats.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            'Username', 'Email', 'User Type', 'Total Exports', 
+            'Daily Limit', 'Last Login', 'Date Joined'
+        ])
+        
+        for user in queryset:
+            writer.writerow([
+                user.username, user.email, user.user_type, user.total_exports,
+                user.daily_export_limit, user.last_login, user.date_joined
+            ])
+        
+        return response
+    export_user_stats.short_description = "Export User Statistics"
+    
+    def changelist_view(self, request, extra_context=None):
+        """Add summary statistics to changelist"""
+        extra_context = extra_context or {}
+        
+        # Calculate summary stats
+        total_users = User.objects.count()
+        active_users = User.objects.filter(is_active=True).count()
+        admin_users = User.objects.filter(user_type__in=['admin', 'superuser']).count()
+        
+        # Today's activity
+        today = timezone.now().date()
+        active_today = UserActivityLog.objects.filter(
+            timestamp__date=today
+        ).values('user').distinct().count()
+        
+        exports_today = UserActivityLog.objects.filter(
+            action__contains='export',
+            timestamp__date=today
+        ).count()
+        
+        extra_context['summary_stats'] = {
+            'total_users': total_users,
+            'active_users': active_users,
+            'admin_users': admin_users,
+            'active_today': active_today,
+            'exports_today': exports_today,
+        }
+        
+        return super().changelist_view(request, extra_context)
 
 
 @admin.register(UserActivityLog)
 class UserActivityLogAdmin(admin.ModelAdmin):
-    # แสดงในรายการ
-    list_display = ['user', 'action_with_icon', 'timestamp_formatted', 'user_type_display', 'get_details_summary']
+    """Enhanced Activity Log Admin with analytics"""
     
-    # ฟิลเตอร์
-    list_filter = ['action', 'timestamp', 'user__user_type']
+    list_display = [
+        'user_link', 'action_display', 'timestamp_formatted', 
+        'user_type_display', 'details_summary'
+    ]
     
-    # ค้นหา
+    list_filter = [
+        'action', 'timestamp', 'user__user_type'
+    ]
+    
     search_fields = ['user__username', 'user__email']
-    
-    # เรียงลำดับ
     ordering = ['-timestamp']
-
-    # ลบ logs
-    actions = ['delete_30old_logs' , 'delete_7old_logs']
+    date_hierarchy = 'timestamp'
     
-    # อ่านอย่างเดียว
     readonly_fields = ['user', 'action', 'timestamp', 'details']
+    actions = ['delete_old_logs_7days', 'delete_old_logs_30days', 'export_logs_csv']
     
-    # ไม่ให้เพิ่ม/แก้ไข
+    # Permissions
     def has_add_permission(self, request):
         return False
     
@@ -161,159 +288,198 @@ class UserActivityLogAdmin(admin.ModelAdmin):
         return False
     
     def has_delete_permission(self, request, obj=None):
-        # เฉพาะ superuser ลบ log ได้
         return request.user.user_type == 'superuser'
     
-
-    def delete_7old_logs(self, request, queryset):
-        """ลบ logs เก่ากว่า 7 วัน"""
-        from datetime import timedelta
-        from django.utils import timezone
+    # Custom display methods
+    def user_link(self, obj):
+        """Create link to user admin page"""
+        from django.urls import reverse
+        from django.utils.html import format_html
         
-        cutoff_date = timezone.now() - timedelta(days=7)  
+        url = reverse('admin:accounts_user_change', args=[obj.user.id])
+        return format_html('<a href="{}">{}</a>', url, obj.user.username)
+    user_link.short_description = 'User'
+    
+    def action_display(self, obj):
+        """Display action with clean formatting"""
+        return obj.get_action_display()
+    action_display.short_description = 'Action'
+    
+    def timestamp_formatted(self, obj):
+        """Format timestamp"""
+        return obj.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+    timestamp_formatted.short_description = 'Time'
+    
+    def user_type_display(self, obj):
+        """Display user type"""
+        return obj.user.get_user_type_display()
+    user_type_display.short_description = 'User Type'
+    
+    def details_summary(self, obj):
+        """Display summary of details"""
+        if obj.details:
+            if isinstance(obj.details, dict):
+                keys = list(obj.details.keys())[:2]
+                return f"{', '.join(keys)}..."
+            return str(obj.details)[:50] + "..."
+        return "-"
+    details_summary.short_description = 'Details'
+    
+    # Filter queryset based on permissions
+    def get_queryset(self, request):
+        """Filter logs based on user permissions"""
+        qs = super().get_queryset(request)
+        if request.user.user_type == 'superuser':
+            return qs
+        elif request.user.user_type == 'admin':
+            return qs.exclude(user__user_type='superuser')
+        else:
+            return qs.filter(user=request.user)
+    
+    # Custom actions
+    def delete_old_logs_7days(self, request, queryset):
+        """Delete logs older than 7 days"""
+        cutoff_date = timezone.now() - timedelta(days=7)
         old_logs = queryset.filter(timestamp__lt=cutoff_date)
         count = old_logs.count()
         old_logs.delete()
         
-        self.message_user(request, f'ลบ Activity Logs เก่า: {count} รายการ')
-    delete_7old_logs.short_description = "ลบ Logs เก่า (>7 วัน)"  
-
-    def delete_30old_logs(self, request, queryset):
-        """ลบ logs เก่ากว่า 30 วัน"""
-        from datetime import timedelta
-        from django.utils import timezone
-        
+        self.message_user(request, f'Deleted {count} activity logs older than 7 days')
+    delete_old_logs_7days.short_description = "Delete Logs (>7 days)"
+    
+    def delete_old_logs_30days(self, request, queryset):
+        """Delete logs older than 30 days"""
         cutoff_date = timezone.now() - timedelta(days=30)
         old_logs = queryset.filter(timestamp__lt=cutoff_date)
         count = old_logs.count()
         old_logs.delete()
         
-        self.message_user(request, f'ลบ Activity Logs เก่า: {count} รายการ')
-    delete_30old_logs.short_description = "ลบ Logs เก่า (>30 วัน)"
-
-    # ✅ Custom display functions
-    def action_with_icon(self, obj):
-        """แสดง action พร้อม emoji"""
-        icons = {
-            'login': '🔓', 'logout': '🔒', 'register': '📝',
-            'export_png': '🖼️', 'export_svg': '📐', 
-            'export_pdf': '📄', 'export_eps': '📋',
-            'upload_image': '⬆️', 'convert_image': '🔄'
-        }
-        icon = icons.get(obj.action, '❓')
-        return f"{icon} {obj.get_action_display()}"
-    action_with_icon.short_description = 'การกระทำ'
+        self.message_user(request, f'Deleted {count} activity logs older than 30 days')
+    delete_old_logs_30days.short_description = "Delete Logs (>30 days)"
     
-    def timestamp_formatted(self, obj):
-        """แสดงเวลาในรูปแบบไทย"""
-        return obj.timestamp.strftime('%d/%m/%Y %H:%M:%S')
-    timestamp_formatted.short_description = 'เวลา'
+    def export_logs_csv(self, request, queryset):
+        """Export selected logs as CSV"""
+        import csv
+        from django.http import HttpResponse
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="activity_logs.csv"'
+        
+        writer = csv.writer(response)
+        writer.writerow(['User', 'Action', 'Timestamp', 'User Type', 'Details'])
+        
+        for log in queryset:
+            writer.writerow([
+                log.user.username, log.get_action_display(), log.timestamp,
+                log.user.get_user_type_display(), str(log.details)
+            ])
+        
+        return response
+    export_logs_csv.short_description = "Export Logs as CSV"
     
-    def user_type_display(self, obj):
-        """แสดง user type พร้อม emoji"""
-        types = {
-            'superuser': '👑 Superuser',
-            'admin': '🛡️ Admin', 
-            'user': '👤 User'
-        }
-        return types.get(obj.user.user_type, '👤 User')
-    user_type_display.short_description = 'ประเภทผู้ใช้'
-    
-    # แสดง details แบบสั้น
-    def get_details_summary(self, obj):
-        if obj.details:
-            if isinstance(obj.details, dict):
-                keys = list(obj.details.keys())[:2]  # 2 keys แรก
-                return f"{', '.join(keys)}..."
-            return str(obj.details)[:30] + "..."
-        return "-"
-    get_details_summary.short_description = 'รายละเอียด'
-    
-    # ฟิลเตอร์การดู log ตาม user_type
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        if request.user.user_type == 'superuser':
-            return qs  # เห็นทุก log
-        elif request.user.user_type == 'admin':
-            return qs.exclude(user__user_type='superuser')  # ไม่เห็น log ของ superuser
-        else:
-            return qs.filter(user=request.user)  # เห็นแค่ log ตัวเอง
+    def changelist_view(self, request, extra_context=None):
+        """Add analytics to changelist"""
+        extra_context = extra_context or {}
+        
+        # Calculate daily activity for last 7 days
+        daily_stats = []
+        for i in range(7):
+            date = (timezone.now() - timedelta(days=i)).date()
+            count = UserActivityLog.objects.filter(timestamp__date=date).count()
+            daily_stats.append({
+                'date': date.strftime('%Y-%m-%d'),
+                'count': count
+            })
+        
+        # Action statistics
+        action_stats = UserActivityLog.objects.values('action').annotate(
+            count=models.Count('id')
+        ).order_by('-count')[:10]
+        
+        extra_context['daily_activity'] = daily_stats
+        extra_context['action_stats'] = action_stats
+        
+        return super().changelist_view(request, extra_context)
 
 
-# Guest Sessions Management
 @admin.register(GuestSession)
 class GuestSessionAdmin(admin.ModelAdmin):
+    """Guest Session Management"""
+    
     list_display = [
         'guest_id_short', 'ip_address', 'export_usage_display', 
         'last_export_date', 'last_activity_formatted', 'created_at_formatted'
     ]
+    
     list_filter = ['last_export_date', 'created_at', 'last_activity']
     search_fields = ['guest_id', 'ip_address']
     readonly_fields = ['guest_id', 'ip_address', 'created_at', 'last_activity', 'user_agent']
     ordering = ['-last_activity']
+    date_hierarchy = 'created_at'
     
+    actions = ['delete_old_sessions', 'reset_guest_limits']
+    
+    # Permissions
     def has_add_permission(self, request):
-        return False  # ไม่ให้สร้าง guest session manual
+        return False
     
     def has_change_permission(self, request, obj=None):
-        return False  # ไม่ให้แก้ไข
+        return False
     
-    # Custom display functions
+    # Custom display methods
     def guest_id_short(self, obj):
+        """Display shortened guest ID"""
         return f"{obj.guest_id[:12]}..."
     guest_id_short.short_description = 'Guest ID'
     
     def export_usage_display(self, obj):
-        """แสดงการใช้งาน export ของ guest"""
+        """Display guest export usage"""
         percentage = (obj.daily_exports_used / obj.GUEST_DAILY_LIMIT) * 100
         
         if percentage >= 100:
-            return f"🔴 {obj.daily_exports_used}/{obj.GUEST_DAILY_LIMIT} (เต็ม)"
+            return f"{obj.daily_exports_used}/{obj.GUEST_DAILY_LIMIT} (Full)"
         elif percentage >= 80:
-            return f"🟡 {obj.daily_exports_used}/{obj.GUEST_DAILY_LIMIT} ({percentage:.0f}%)"
+            return f"{obj.daily_exports_used}/{obj.GUEST_DAILY_LIMIT} ({percentage:.0f}%)"
         else:
-            return f"🟢 {obj.daily_exports_used}/{obj.GUEST_DAILY_LIMIT} ({percentage:.0f}%)"
-    export_usage_display.short_description = 'การใช้งาน Export'
+            return f"{obj.daily_exports_used}/{obj.GUEST_DAILY_LIMIT} ({percentage:.0f}%)"
+    export_usage_display.short_description = 'Export Usage'
     
     def last_activity_formatted(self, obj):
+        """Format last activity date"""
         if obj.last_activity:
-            return obj.last_activity.strftime('%d/%m/%Y %H:%M')
+            return obj.last_activity.strftime('%Y-%m-%d %H:%M')
         return '-'
-    last_activity_formatted.short_description = 'กิจกรรมล่าสุด'
+    last_activity_formatted.short_description = 'Last Activity'
     
     def created_at_formatted(self, obj):
-        return obj.created_at.strftime('%d/%m/%Y %H:%M')
-    created_at_formatted.short_description = 'สร้างเมื่อ'
+        """Format creation date"""
+        return obj.created_at.strftime('%Y-%m-%d %H:%M')
+    created_at_formatted.short_description = 'Created'
     
-    # Action สำหรับลบ guest sessions เก่า
-    actions = ['delete_old_sessions', 'reset_guest_limits']
-    
+    # Custom actions
     def delete_old_sessions(self, request, queryset):
-        """ลบ Guest Sessions ที่ไม่ได้ใช้งานมากกว่า 7 วัน"""
-        from datetime import timedelta
-        from django.utils import timezone
-        
+        """Delete guest sessions inactive for more than 7 days"""
         cutoff_date = timezone.now() - timedelta(days=7)
         old_sessions = queryset.filter(last_activity__lt=cutoff_date)
         count = old_sessions.count()
         old_sessions.delete()
         
-        self.message_user(request, f'ลบ Guest Sessions เก่า: {count} รายการ')
-    delete_old_sessions.short_description = "ลบ Sessions เก่า (>7 วัน)"
+        self.message_user(request, f'Deleted {count} inactive guest sessions')
+    delete_old_sessions.short_description = "Delete Inactive Sessions (>7 days)"
     
     def reset_guest_limits(self, request, queryset):
-        """Reset export limits สำหรับ guest sessions ที่เลือก"""
+        """Reset export limits for selected guest sessions"""
         count = 0
         for session in queryset:
             session.daily_exports_used = 0
             session.last_export_date = None
             session.save()
             count += 1
-        self.message_user(request, f'🔄 รีเซ็ต export limits สำหรับ {count} Guest Sessions')
-    reset_guest_limits.short_description = "🔄 รีเซ็ต Guest Limits"
+        self.message_user(request, f'Reset export limits for {count} guest sessions')
+    reset_guest_limits.short_description = "Reset Guest Export Limits"
 
 
-# เปลี่ยนชื่อ admin site
-admin.site.site_header = "Bitmap to Vector - ระบบจัดการ"
+# Customize admin site
+admin.site.site_header = "Bitmap to Vector - Administration"
 admin.site.site_title = "Admin Panel"
-admin.site.index_title = "ระบบจัดการหลังบ้าน"
+admin.site.index_title = "System Administration"

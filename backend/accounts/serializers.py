@@ -65,6 +65,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserActivityLogSerializer(serializers.ModelSerializer):
     action_display = serializers.CharField(source='get_action_display', read_only=True)
     user_username = serializers.CharField(source='user.username', read_only=True)
+    user_type = serializers.CharField(source='user.user_type', read_only=True)  
     formatted_timestamp = serializers.CharField(read_only=True)
     time_ago = serializers.CharField(read_only=True)
     
@@ -72,7 +73,7 @@ class UserActivityLogSerializer(serializers.ModelSerializer):
         from .models import UserActivityLog
         model = UserActivityLog
         fields = [
-            'id', 'user', 'user_username', 'action', 'action_display', 
+            'id', 'user', 'user_username', 'action', 'action_display', 'user_type', 
             'timestamp', 'formatted_timestamp', 'time_ago', 'details'
         ]
         read_only_fields = ['timestamp']
@@ -86,8 +87,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
-            'user_type', 'user_type_display', 'daily_conversion_limit', 
-            'daily_conversions_used', 'total_conversions',
+            'user_type', 'user_type_display', 'total_conversions',
             'date_joined', 'last_login', 'is_active', 'is_staff', 'password'
         ]
         read_only_fields = ['date_joined', 'last_login', 'total_conversions']

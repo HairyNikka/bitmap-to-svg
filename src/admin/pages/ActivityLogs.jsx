@@ -1,279 +1,50 @@
-// src/admin/pages/ActivityLogs.jsx
-import React, { useState, useEffect } from 'react';
+// admin/pages/ActivityLogs.jsx
+import React from 'react';
 import AdminLayout from '../components/AdminLayout';
-import axios from 'axios';
-import { exportActivityLogsToCSV } from '../utils/exportCSV'; // Import PDF utility
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faUserPlus, faSignInAlt, faSignOutAlt, faImage, 
-  faFileImage, faFilePdf, faTrash, faEdit, faArrowUp, 
-  faKey, faShield 
-} from '@fortawesome/free-solid-svg-icons';
+import { useActivityLogs } from '../hooks/useActivityLogs';
+import FilterPanel from '../components/ActivityLogs/FilterPanel';
+import LogsTable from '../components/ActivityLogs/LogsTable';
+import Pagination from '../components/ActivityLogs/Pagination';
 
 export default function ActivityLogs() {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [exportingCsv, setExportingCsv] = useState(false); // Export loading state
-  
-  // Filters & Search
-  const [actionFilter, setActionFilter] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
-  const [userFilter, setUserFilter] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalLogs, setTotalLogs] = useState(0);
-  const perPage = 20;
-
-  // Custom date range
-  const [customDateFrom, setCustomDateFrom] = useState('');
-  const [customDateTo, setCustomDateTo] = useState('');
-
-  useEffect(() => {
-    fetchActivityLogs();
-  }, [actionFilter, dateFilter, userFilter, currentPage, customDateFrom, customDateTo]);
-
-  const fetchActivityLogs = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      
-      // แปลง dateFilter เป็น date_from/date_to
-      let dateFromParam = customDateFrom;
-      let dateToParam = customDateTo;
-      
-      const getBangkokDate = () => {
-        const bangkok = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
-        return bangkok;
-      };
-      const formatDate = (date) => {
-        return date.toISOString().split('T')[0];
-      };
-
-      const today = getBangkokDate();
-
-      switch (dateFilter) {
-        case 'today':
-          dateFromParam = formatDate(today);
-          dateToParam = formatDate(today);
-          break;
-        case 'yesterday':
-          const yesterday = new Date(today);
-          yesterday.setDate(today.getDate() - 1);
-          dateFromParam = formatDate(yesterday);
-          dateToParam = formatDate(yesterday);
-          break;
-        case 'this_week':
-          const thisWeekStart = new Date(today);
-          thisWeekStart.setDate(today.getDate() - today.getDay());
-          dateFromParam = formatDate(thisWeekStart);
-          dateToParam = formatDate(today);
-          break;
-        case 'last_week':
-          const lastWeekEnd = new Date(today);
-          lastWeekEnd.setDate(today.getDate() - today.getDay() - 1);
-          const lastWeekStart = new Date(lastWeekEnd);
-          lastWeekStart.setDate(lastWeekEnd.getDate() - 6);
-          dateFromParam = formatDate(lastWeekStart);
-          dateToParam = formatDate(lastWeekEnd);
-          break;
-        case 'this_month':
-          const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-          dateFromParam = formatDate(thisMonthStart);
-          dateToParam = formatDate(today);
-          break;
-        case 'last_month':
-          const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-          const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-          dateFromParam = formatDate(lastMonthStart);
-          dateToParam = formatDate(lastMonthEnd);
-          break;
-        case 'custom':
-          // ใช้ customDateFrom/customDateTo ที่มีอยู่แล้ว
-          break;
-        default:
-          // ไม่มี date filter
-          dateFromParam = '';
-          dateToParam = '';
-      }
-      
-      const params = new URLSearchParams({
-        page: currentPage,
-        per_page: perPage,
-        ...(actionFilter && { action: actionFilter }),
-        ...(userFilter && { user: userFilter }),
-        ...(dateFromParam && { date_from: dateFromParam }),
-        ...(dateToParam && { date_to: dateToParam })
-      });
-
-      const response = await axios.get(`http://localhost:8000/api/accounts/admin/logs/?${params}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      setLogs(response.data.logs);
-      setTotalPages(response.data.pagination?.pages || 1);
-      setTotalLogs(response.data.pagination?.total || 0);
-      setError(null);
-    } catch (error) {
-      console.error('Failed to fetch activity logs:', error);
-      setError('ไม่สามารถโหลดข้อมูล Activity Logs ได้');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-// 📊 Export CSV Function (เปลี่ยนจาก PDF)
-const handleExportCSV = async () => {
-  setExportingCsv(true); // ใช้ state เดิมก่อน
-  
-  try {
-    const filters = {
-      actionFilter,
-      dateFilter,
-      userFilter,
-      customDateFrom,
-      customDateTo
-    };
+  // ใช้ custom hook สำหรับจัดการ state และ logic
+  const {
+    // Data
+    logs,
+    loading,
+    error,
     
-    const result = await exportActivityLogsToCSV(filters, formatDetails);
+    // Pagination
+    currentPage,
+    totalPages,
+    totalLogs,
     
-    if (result.success) {
-      alert(result.message);
-    } else {
-      alert(result.message);
-    }
+    // Filters
+    filters,
     
-  } catch (error) {
-    console.error('Export error:', error);
-    alert('ไม่สามารถส่งออก CSV ได้ กรุณาลองใหม่อีกครั้ง');
-  } finally {
-    setExportingCsv(false);
-  }
-};
-
-  // รายการ actions ที่เป็นไปได้
-  const actionOptions = [
-    { value: '', label: 'ทุกการกระทำ' },
-    { value: 'register', label: 'สมัครสมาชิก' },
-    { value: 'login', label: 'เข้าสู่ระบบ' },
-    { value: 'logout', label: 'ออกจากระบบ' },
-    { value: 'convert_image', label: 'แปลงภาพ' },
-    { value: 'export_png', label: 'ส่งออก PNG' },
-    { value: 'export_svg', label: 'ส่งออก SVG' },
-    { value: 'export_pdf', label: 'ส่งออก PDF' },
-    { value: 'export_eps', label: 'ส่งออก EPS' },
-    { value: 'admin_delete_user', label: 'ลบผู้ใช้' },
-    { value: 'admin_edit_user', label: 'แก้ไขข้อมูลผู้ใช้' },
-    { value: 'admin_promote_user', label: 'เลื่อนตำแหน่งผู้ใช้' },
-    { value: 'password_reset', label: 'เปลี่ยนรหัสผ่าน' },
-    { value: 'security_questions_verified', label: 'ยืนยันคำถามความปลอดภัย' },
-    { value: 'admin_change_password', label: 'เปลี่ยนรหัสผ่านโดย Admin' },
-    { value: 'admin_edit_security_questions', label: 'แก้ไขคำถามความปลอดภัยโดย Admin' }
-  ];
-
-  const dateOptions = [
-    { value: '', label: 'ทุกช่วงเวลา' },
-    { value: 'today', label: 'วันนี้' },
-    { value: 'yesterday', label: 'เมื่อวาน' },
-    { value: 'this_week', label: 'สัปดาห์นี้' },
-    { value: 'last_week', label: 'สัปดาห์ที่ผ่านมา' },
-    { value: 'this_month', label: 'เดือนนี้' },
-    { value: 'last_month', label: 'เดือนที่ผ่านมา' },
-    { value: 'custom', label: 'กำหนดเอง' }
-  ];
-
-  const getActionIcon = (action) => {
-    const iconMap = {
-      'register': faUserPlus,
-      'login': faSignInAlt,
-      'logout': faSignOutAlt,
-      'convert_image': faImage,
-      'export_png': faFileImage,
-      'export_svg': faFileImage,
-      'export_pdf': faFilePdf,
-      'export_eps': faFileImage,
-      'admin_delete_user': faTrash,
-      'admin_edit_user': faEdit,
-      'admin_promote_user': faArrowUp,
-      'password_reset': faKey,
-      'security_questions_verified': faShield,
-      'admin_change_password': faEdit,
-      'admin_edit_security_questions': faEdit
-    };
-    return <FontAwesomeIcon icon={iconMap[action] || faFileImage} size="sm" />;
-  };
-
-  const getActionColor = (action) => {
-    if (action.startsWith('admin_')) return '#ff6b6b'; // Admin actions - แดง
-    if (action.includes('export_')) return '#28a745'; // Export actions - เขียว
-    if (action === 'convert_image') return '#007bff'; // Convert - น้ำเงิน
-    if (action === 'login') return '#17a2b8'; // Login - ฟ้า
-    if (action === 'logout') return '#6c757d'; // Logout - เทา
-    if (action === 'register') return '#ffc107'; // Register - เหลือง
-    if (action === 'password_reset') return '#dc3545'; // แดง - สำคัญ
-    if (action === 'security_questions_verified') return '#926d00ff'; // เหลือง - การยืนยัน
-    return '#6c757d'; // Default - เทา
-  };
-
-  const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes';
-  
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-};
-
-  const formatDetails = (details, action) => {
-    if (!details) return '-';
+    // Export
+    exportingCsv,
     
-    try {
-      if (typeof details === 'string') {
-        details = JSON.parse(details);
-      }
-      
-      const detailStrings = [];
-      
-      if (details.filename) detailStrings.push(`ไฟล์: ${details.filename}`);
-      
-      if (details.file_size) {
-        const formattedSize = formatFileSize(details.file_size);
-        detailStrings.push(`ขนาด: ${formattedSize}`);
-      }
-      
-      if (details.export_format) detailStrings.push(`รูปแบบ: ${details.export_format.toUpperCase()}`);
-      
-      if (details.login_method) {
-        const methodDisplay = details.login_method === 'JWT' ? 'ผ่านระบบปกติ' : details.login_method;
-        detailStrings.push(`วิธี: ${methodDisplay}`);
-      }
-      
-      if (details.logout_method) {
-        const logoutDisplay = details.logout_method === 'JWT' ? 'ผ่านระบบปกติ' : details.logout_method;
-        detailStrings.push(`วิธี: ${logoutDisplay}`);
-      }
-      
-      
-      if (details.remaining_conversions !== undefined) {
-      const vectorExportActions = ['export_svg', 'export_eps', 'export_pdf'];
-      if (vectorExportActions.includes(action)) {
-        detailStrings.push(`เหลือ: ${details.remaining_conversions} ครั้ง`);
-        }
-      }
-      
-      if (details.method === 'security_questions') {
-        detailStrings.push('ผ่านคำถามความปลอดภัย');
-      }
-      
-      if (details.reset_initiated) {
-        detailStrings.push('เริ่มกระบวนการรีเซ็ต');
-      }
+    // Actions
+    updateFilter,
+    clearFilters,
+    changePage,
+    nextPage,
+    previousPage,
+    refresh,
+    setExportState,
+    
+    // Computed values
+    hasData,
+    hasNextPage,
+    hasPreviousPage,
+    isFirstLoad,
+    perPage
+  } = useActivityLogs();
 
-      return detailStrings.length > 0 ? detailStrings.join(', ') : '-';
-    } catch (e) {
-      return details.toString();
-    }
+  // Handle filter changes
+  const handleFilterChange = (filterName, value) => {
+    updateFilter(filterName, value);
   };
 
   const styles = {
@@ -304,164 +75,6 @@ const handleExportCSV = async () => {
       fontSize: '12px',
       fontWeight: '600'
     },
-    filtersContainer: {
-      backgroundColor: '#2a2a2a',
-      padding: '20px',
-      borderRadius: '12px',
-      marginBottom: '20px',
-      border: '1px solid #3a3a3a'
-    },
-    filtersGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '15px',
-      marginBottom: '15px'
-    },
-    filterGroup: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '5px'
-    },
-    filterLabel: {
-      fontSize: '12px',
-      color: '#a0a0a0',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px'
-    },
-    input: {
-      padding: '10px 15px',
-      backgroundColor: '#3a3a3a',
-      border: '1px solid #4a4a4a',
-      borderRadius: '8px',
-      color: '#ffffff',
-      fontSize: '14px'
-    },
-    select: {
-      padding: '10px 15px',
-      backgroundColor: '#3a3a3a',
-      border: '1px solid #4a4a4a',
-      borderRadius: '8px',
-      color: '#ffffff',
-      fontSize: '14px'
-    },
-    customDateContainer: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '10px',
-      marginBottom: '15px' 
-    },
-    buttonContainer: {
-      display: 'flex',
-      gap: '10px',
-      alignItems: 'center',
-      marginTop: '10px'  
-    },
-    clearButton: {
-      padding: '10px 20px',
-      backgroundColor: '#6c757d',
-      color: '#ffffff',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      cursor: 'pointer'
-    },
-    // 🆕 Export PDF Button
-    exportButton: {
-      padding: '10px 20px',
-      backgroundColor: '#28a745',
-      color: '#ffffff',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px'
-    },
-    exportButtonDisabled: {
-      backgroundColor: '#6c757d',
-      cursor: 'not-allowed',
-      opacity: 0.6
-    },
-    table: {
-      width: '100%',
-      backgroundColor: '#2a2a2a',
-      borderRadius: '12px',
-      overflow: 'hidden',
-      border: '1px solid #3a3a3a'
-    },
-    thead: {
-      backgroundColor: '#3a3a3a'
-    },
-    th: {
-      padding: '15px',
-      textAlign: 'left',
-      color: '#ffffff',
-      fontWeight: '600',
-      borderBottom: '1px solid #4a4a4a'
-    },
-    td: {
-      padding: '15px',
-      color: '#e0e0e0',
-      borderBottom: '1px solid #3a3a3a',
-      verticalAlign: 'top'
-    },
-    actionCell: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px'
-    },
-    actionBadge: {
-      padding: '2px 6px',
-      borderRadius: '4px',
-      fontSize: '12px',
-      fontWeight: '600',
-      color: '#ffffff',
-      maxWidth: '140px'  
-    },
-    userBadge: {
-      backgroundColor: '#495057',
-      color: '#ffffff',
-      padding: '2px 6px',
-      borderRadius: '4px',
-      fontSize: '12px'
-    },
-    timeCell: {
-      fontSize: '12px'
-    },
-    timeAgo: {
-      color: '#007bff',
-      fontWeight: '600'
-    },
-    timestamp: {
-      color: '#a0a0a0',
-      marginTop: '2px'
-    },
-    detailsCell: {
-      fontSize: '12px',
-      color: '#a0a0a0',
-      maxWidth: '200px',
-      wordBreak: 'break-word'
-    },
-    pagination: {
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: '10px',
-      marginTop: '20px'
-    },
-    pageButton: {
-      padding: '8px 12px',
-      backgroundColor: '#2a2a2a',
-      border: '1px solid #3a3a3a',
-      borderRadius: '6px',
-      color: '#ffffff',
-      cursor: 'pointer'
-    },
-    activePageButton: {
-      backgroundColor: '#007bff',
-      borderColor: '#007bff'
-    },
     loadingContainer: {
       display: 'flex',
       justifyContent: 'center',
@@ -479,37 +92,45 @@ const handleExportCSV = async () => {
     errorContainer: {
       textAlign: 'center',
       padding: '40px',
+      color: '#ff6b6b',
+      backgroundColor: '#2a2a2a',
+      borderRadius: '12px',
+      border: '1px solid #3a3a3a'
+    },
+    errorTitle: {
+      fontSize: '18px',
+      fontWeight: '600',
+      marginBottom: '8px',
       color: '#ff6b6b'
+    },
+    errorMessage: {
+      fontSize: '14px',
+      marginBottom: '20px',
+      lineHeight: '1.5'
     },
     refreshButton: {
       backgroundColor: '#007bff',
       color: '#ffffff',
       border: 'none',
-      padding: '8px 16px',
-      borderRadius: '6px',
+      padding: '10px 20px',
+      borderRadius: '8px',
       fontSize: '14px',
       cursor: 'pointer',
-      marginTop: '20px'
-    },
-    emptyState: {
-      textAlign: 'center',
-      padding: '40px',
-      color: '#a0a0a0'
+      transition: 'background-color 0.2s'
     }
   };
 
-  const clearFilters = () => {
-    setActionFilter('');
-    setDateFilter('');
-    setUserFilter('');
-    setCustomDateFrom('');
-    setCustomDateTo('');
-    setCurrentPage(1);
-  };
-
-  if (loading && logs.length === 0) {
+  // Loading state สำหรับการโหลดครั้งแรก
+  if (isFirstLoad) {
     return (
       <AdminLayout>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+        
         <div style={styles.loadingContainer}>
           <div style={styles.loadingSpinner}></div>
         </div>
@@ -517,232 +138,89 @@ const handleExportCSV = async () => {
     );
   }
 
-  if (error) {
+  // Error state
+  if (error && !hasData) {
     return (
       <AdminLayout>
-        <div style={styles.errorContainer}>
-          <h3>เกิดข้อผิดพลาด</h3>
-          <p>{error}</p>
-          <button 
-            onClick={fetchActivityLogs}
-            style={styles.refreshButton}
-          >
-            ลองใหม่
-          </button>
+        <div style={styles.container}>
+          <div style={styles.errorContainer}>
+            <h3 style={styles.errorTitle}>เกิดข้อผิดพลาด</h3>
+            <p style={styles.errorMessage}>{error}</p>
+            <button 
+              onClick={refresh}
+              style={styles.refreshButton}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
+            >
+              ลองใหม่
+            </button>
+          </div>
         </div>
       </AdminLayout>
     );
   }
 
+  // Main render
   return (
-    <>
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-      
-      <AdminLayout>
-        <div style={styles.container}>
-          {/* Header */}
-          <div style={styles.header}>
-            <h1 style={styles.title}>Activity Logs</h1>
-            <p style={styles.subtitle}>
-              บันทึกการใช้งานระบบทั้งหมด
-              <span style={styles.totalCount}>{totalLogs.toLocaleString()} รายการ</span>
-            </p>
-          </div>
-
-          {/* Filters */}
-          <div style={styles.filtersContainer}>
-            <div style={styles.filtersGrid}>
-              <div style={styles.filterGroup}>
-                <label style={styles.filterLabel}>ค้นหาผู้ใช้</label>
-                <input
-                  type="text"
-                  placeholder="ชื่อผู้ใช้..."
-                  value={userFilter}
-                  onChange={(e) => setUserFilter(e.target.value)}
-                  style={styles.input}
-                />
-              </div>
-
-              <div style={styles.filterGroup}>
-                <label style={styles.filterLabel}>การกระทำ</label>
-                <select
-                  value={actionFilter}
-                  onChange={(e) => setActionFilter(e.target.value)}
-                  style={styles.select}
-                >
-                  {actionOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={styles.filterGroup}>
-                <label style={styles.filterLabel}>ช่วงเวลา</label>
-                <select
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  style={styles.select}
-                >
-                  {dateOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Custom Date Range */}
-            {dateFilter === 'custom' && (
-              <div style={styles.customDateContainer}>
-                <div style={styles.filterGroup}>
-                  <label style={styles.filterLabel}>จากวันที่</label>
-                  <input
-                    type="date"
-                    value={customDateFrom}
-                    onChange={(e) => setCustomDateFrom(e.target.value)}
-                    style={styles.input}
-                  />
-                </div>
-                <div style={styles.filterGroup}>
-                  <label style={styles.filterLabel}>ถึงวันที่</label>
-                  <input
-                    type="date"
-                    value={customDateTo}
-                    onChange={(e) => setCustomDateTo(e.target.value)}
-                    style={styles.input}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* 🆕 Buttons Container */}
-            <div style={styles.buttonContainer}>
-              <button
-                onClick={clearFilters}
-                style={styles.clearButton}
-              >
-                ล้างตัวกรอง
-              </button>
-              
-              <button
-                onClick={handleExportCSV}
-                disabled={exportingCsv || logs.length === 0}
-                style={{
-                  ...styles.exportButton,
-                  ...(exportingCsv || logs.length === 0 ? styles.exportButtonDisabled : {})
-                }}
-              >
-                {exportingCsv ? (
-                  <>
-                    <span>⏳</span>
-                    กำลังสร้าง CSV...
-                  </>
-                ) : (
-                  <>
-                    <span>📄</span>
-                    Export CSV
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Activity Logs Table */}
-          {logs.length > 0 ? (
-            <table style={styles.table}>
-              <thead style={styles.thead}>
-                <tr>
-                  <th style={styles.th}>ผู้ใช้</th>
-                  <th style={styles.th}>การกระทำ</th>
-                  <th style={styles.th}>เวลา</th>
-                  <th style={styles.th}>รายละเอียด</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={log.id}>
-                    <td style={styles.td}>
-                      <span style={styles.userBadge}>
-                        {log.user_username || 'Unknown'}
-                      </span>
-                    </td>
-                    <td style={styles.td}>
-                      <div style={styles.actionCell}>
-                        <span>{getActionIcon(log.action)}</span>
-                        <span 
-                          style={{
-                            ...styles.actionBadge,
-                            backgroundColor: getActionColor(log.action)
-                          }}
-                        >
-                          {log.action_display}
-                        </span>
-                      </div>
-                    </td>
-                    <td style={styles.td}>
-                      <div style={styles.timeCell}>
-                        <div style={styles.timeAgo}>{log.time_ago}</div>
-                        <div style={styles.timestamp}>{log.formatted_timestamp}</div>
-                      </div>
-                    </td>
-                    <td style={styles.td}>
-                      <div style={styles.detailsCell}>
-                        {formatDetails(log.details, log.action)}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div style={styles.emptyState}>
-              <h3>ไม่พบข้อมูล</h3>
-              <p>ไม่มี Activity Logs ที่ตรงกับเงื่อนไขที่ค้นหา</p>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div style={styles.pagination}>
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(currentPage - 1)}
-                style={{
-                  ...styles.pageButton,
-                  opacity: currentPage === 1 ? 0.5 : 1,
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
-                }}
-              >
-                ก่อนหน้า
-              </button>
-
-              <span style={{ color: '#e0e0e0' }}>
-                หน้า {currentPage} จาก {totalPages}
+    <AdminLayout>
+      <div style={styles.container}>
+        {/* Header */}
+        <div style={styles.header}>
+          <h1 style={styles.title}>Activity Logs</h1>
+          <p style={styles.subtitle}>
+            บันทึกการใช้งานระบบทั้งหมด
+            {totalLogs > 0 && (
+              <span style={styles.totalCount}>
+                {totalLogs.toLocaleString()} รายการ
               </span>
-
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(currentPage + 1)}
-                style={{
-                  ...styles.pageButton,
-                  opacity: currentPage === totalPages ? 0.5 : 1,
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
-                }}
-              >
-                ถัดไป
-              </button>
-            </div>
-          )}
+            )}
+          </p>
         </div>
-      </AdminLayout>
-    </>
+
+        {/* Filter Panel */}
+        <FilterPanel
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onClearFilters={clearFilters}
+          exportingCsv={exportingCsv}
+          onExportStateChange={setExportState}
+          totalLogs={totalLogs}
+          hasData={hasData}
+        />
+
+        {/* Error notification (ถ้ามีข้อมูลแสดงอยู่แล้ว) */}
+        {error && hasData && (
+          <div style={{
+            backgroundColor: '#dc3545',
+            color: '#ffffff',
+            padding: '10px 15px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px'
+          }}>
+            {error}
+          </div>
+        )}
+
+        {/* Logs Table */}
+        <LogsTable 
+          logs={logs} 
+          loading={loading}
+        />
+
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalLogs={totalLogs}
+          perPage={perPage}
+          onPageChange={changePage}
+          onPreviousPage={previousPage}
+          onNextPage={nextPage}
+          hasNextPage={hasNextPage}
+          hasPreviousPage={hasPreviousPage}
+        />
+      </div>
+    </AdminLayout>
   );
 }

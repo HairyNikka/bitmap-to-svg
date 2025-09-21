@@ -1,4 +1,4 @@
-// src/admin/utils/exportPDF.js
+// src/admin/utils/exportCSV.js
 // CSV Export Utility สำหรับ Activity Logs - เป็น CSV
 
 // 📊 Export Activity Logs เป็น CSV 
@@ -10,14 +10,15 @@ export const exportActivityLogsToCSV = async (filters, formatDetails) => {
     const logsData = await fetchAllLogsData(filters);
     
     // สร้าง CSV
-    const headers = ['ผู้ใช้', 'การกระทำ', 'เวลา', 'รายละเอียด'];
+    const headers = ['ผู้ใช้', 'ตำแหน่ง', 'การกระทำ', 'เวลา', 'รายละเอียด'];
     const csvData = [
       headers,
       ...logsData.map(log => [
         log.user_username || 'Unknown',
+        getUserTypeDisplay(log.user_type),
         log.action_display || log.action,
         log.formatted_timestamp || '',
-        formatDetails ? formatDetails(log.details).replace(/,/g, ';') : (log.details || '').replace(/,/g, ';')
+        formatDetails ? formatDetails(log.details, log.action).replace(/,/g, ';') : (log.details || '').replace(/,/g, ';')
       ])
     ];
 
@@ -55,6 +56,19 @@ export const exportActivityLogsToCSV = async (filters, formatDetails) => {
   }
 };
 
+// แปลง user_type เป็นภาษาไทย
+const getUserTypeDisplay = (userType) => {
+  switch (userType) {
+    case 'superuser':
+      return 'ผู้ดูแลสูงสุด';
+    case 'admin':
+      return 'ผู้ดูแลระบบ';
+    case 'user':
+    default:
+      return 'ผู้ใช้ทั่วไป';
+  }
+};
+
 // 🔍 ดึงข้อมูล logs ทั้งหมดตาม filter (ใช้ API ที่มีอยู่แล้ว)
 const fetchAllLogsData = async (filters) => {
   const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
@@ -66,8 +80,17 @@ const fetchAllLogsData = async (filters) => {
     per_page: 1000, // ดึงข้อมูลเยอะๆ
     ...(filters.actionFilter && { action: filters.actionFilter }),
     ...(filters.userFilter && { user: filters.userFilter }),
+    ...(filters.userTypeFilter && { user_type: filters.userTypeFilter }), // เพิ่มบรรทัดนี้
     ...(dateFromParam && { date_from: dateFromParam }),
     ...(dateToParam && { date_to: dateToParam })
+  });
+
+  console.log('🔍 Exporting with filters:', {
+    action: filters.actionFilter,
+    user: filters.userFilter,
+    user_type: filters.userTypeFilter, // เพิ่มสำหรับ debug
+    date_from: dateFromParam,
+    date_to: dateToParam
   });
 
   const response = await fetch(`http://localhost:8000/api/accounts/admin/logs/?${params}`, {
@@ -79,6 +102,7 @@ const fetchAllLogsData = async (filters) => {
   }
 
   const data = await response.json();
+  console.log(`📊 Retrieved ${data.logs.length} logs for export`);
   return data.logs;
 };
 
