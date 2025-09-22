@@ -109,9 +109,9 @@ export const paginationConfig = {
 // รายการตำแหน่งผู้ใช้สำหรับกรอง
 export const userTypeOptions = [
   { value: '', label: 'ทุกตำแหน่ง' },
-  { value: 'user', label: 'ผู้ใช้ทั่วไป' },
-  { value: 'admin', label: 'ผู้ดูแลระบบ' },
-  { value: 'superuser', label: 'ผู้ดูแลสูงสุด' }
+  { value: 'user', label: 'User' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'superuser', label: 'Super User' }
 ];
 
 // ข้อความต่างๆ

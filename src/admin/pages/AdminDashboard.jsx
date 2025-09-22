@@ -230,9 +230,9 @@ export default function AdminDashboard() {
 
   const getUserTypeDisplay = (type) => {
     const typeMap = {
-      'user': 'ผู้ใช้ทั่วไป',
-      'admin': 'แอดมิน',
-      'superuser': 'ซุปเปอร์ยูสเซอร์'
+      'user': 'User',
+      'admin': 'Admin',
+      'superuser': 'Super User'
     };
     return typeMap[type] || type;
   };
@@ -251,7 +251,7 @@ export default function AdminDashboard() {
       <div style={styles.container}>
         {/* Header */}
         <div style={styles.header}>
-          <h1 style={styles.title}>Dashboard</h1>
+          <h1 style={styles.title}>แดชบอร์ด (Dashboard)</h1>
           <p style={styles.subtitle}>ภาพรวมการใช้งานระบบ Bitmap to SVG Converter</p>
         </div>
 

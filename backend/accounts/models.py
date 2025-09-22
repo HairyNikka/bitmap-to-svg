@@ -11,9 +11,9 @@ class User(AbstractUser):
     """Custom User Model with role-based access and export limits"""
     
     USER_TYPES = [
-        ('user', 'ผู้ใช้ทั่วไป'),
-        ('admin', 'ผู้ดูแลระบบ'),
-        ('superuser', 'ซุปเปอร์ยูสเซอร์')
+        ('user', 'User'),
+        ('admin', 'Admin'),
+        ('superuser', 'Super User')
     ]
     
     # ข้อมูลเพิ่มเติมของผู้ใช้
@@ -92,6 +92,21 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.username} ({self.get_user_type_display()})"
     
+    def save(self, *args, **kwargs):
+        """Override save method เพื่อ sync user_type กับ Django permissions"""
+        # Sync user_type กับ Django built-in permissions
+        if self.user_type == 'superuser':
+            self.is_superuser = True
+            self.is_staff = True
+        elif self.user_type == 'admin':
+            self.is_superuser = False
+            self.is_staff = True  # Admin สามารถเข้า Django admin ได้
+        else:  # user_type == 'user'
+            self.is_superuser = False
+            self.is_staff = False
+            
+        super().save(*args, **kwargs)
+
     # 🔄 Export-related methods (ใหม่)
     def reset_daily_exports_if_new_day(self):
         """Reset การนับการส่งออกรายวันถ้าเป็นวันใหม่"""
@@ -209,6 +224,8 @@ class User(AbstractUser):
             "ชื่อตำบลที่คุณเกิดคืออะไร?",
             "เกมโปรดของคุณที่ชอบมากที่สุดคือเกมอะไร?"
         ]
+    
+    
 
 class GuestSession(models.Model):
     """บันทึกการใช้งานของ Guest (ไม่ได้ login)"""

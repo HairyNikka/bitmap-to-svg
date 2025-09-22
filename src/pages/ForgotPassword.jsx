@@ -204,15 +204,6 @@ const ForgotPassword = ({ onUserFound }) => {
             </div>
           )}
 
-          {/* Info Box */}
-          <div style={styles.infoBox}>
-            <FontAwesomeIcon icon={faInfoCircle} style={styles.infoIcon} />
-            <div style={styles.infoText}>
-              <strong>หมายเหตุ:</strong> หากคุณยังไม่ได้ตั้งคำถามความปลอดภัย<br />
-              กรุณาติดต่อ Superuser เพื่อรีเซ็ตรหัสผ่าน
-            </div>
-          </div>
-
           {/* Submit Button */}
           <button
             type="submit"
@@ -249,12 +240,12 @@ const ForgotPassword = ({ onUserFound }) => {
 // Styles
 const styles = {
   container: {
-    minHeight: '100vh',
+    minHeight: '60vh',
     backgroundColor: '#1a1a1a',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '20px'
+    padding: '10px'
   },
 
   card: {
@@ -393,28 +384,6 @@ const styles = {
 
   successIcon: {
     fontSize: '12px'
-  },
-
-  infoBox: {
-    backgroundColor: '#1e3a8a',
-    border: '1px solid #3b82f6',
-    borderRadius: '8px',
-    padding: '12px',
-    display: 'flex',
-    gap: '10px',
-    alignItems: 'flex-start'
-  },
-
-  infoIcon: {
-    color: '#93c5fd',
-    fontSize: '14px',
-    marginTop: '2px'
-  },
-
-  infoText: {
-    color: '#dbeafe',
-    fontSize: '12px',
-    lineHeight: '1.4'
   },
 
   submitButton: {

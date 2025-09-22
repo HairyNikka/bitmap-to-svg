@@ -288,7 +288,7 @@ export default function AdminLayout({ children }) {
           <nav style={styles.navigation}>
             <Link to="/admin" style={getNavLinkStyle('/admin')}>
               <FontAwesomeIcon icon={faChartLine} />
-              Dashboard
+              แดชบอร์ด
             </Link>
 
             <Link to="/admin/users" style={getNavLinkStyle('/admin/users')}>
@@ -298,7 +298,7 @@ export default function AdminLayout({ children }) {
 
             <Link to="/admin/logs" style={getNavLinkStyle('/admin/logs')}>
               <FontAwesomeIcon icon={faClipboardList} />
-              Activity Logs
+              บันทึกกิจกรรม
             </Link>
 
             <Link to="/" style={styles.navLink}>

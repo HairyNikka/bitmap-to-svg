@@ -1,280 +1,126 @@
-// src/admin/pages/UserManagement.jsx - Updated version
-import React, { useState, useEffect } from 'react';
+// admin/pages/UserManagement.jsx - Refactored version
+import React from 'react';
 import AdminLayout from '../components/AdminLayout';
-import EditUserModal from '../components/EditUserModal'; // 🆕 Import modal
-import axios from 'axios';
+import EditUserModal from '../components/EditUserModal'; // ใช้ modal เดิมต่อ
+import { useUserManagement } from '../hooks/useUserManagement';
+import UserFilters from '../components/UserManagement/UserFilters';
+import UserTable from '../components/UserManagement/UserTable';
+import UserPagination from '../components/UserManagement/UserPagination';
+import DeleteUserModal from '../components/UserManagement/DeleteUserModal';
+import { formatStatsMessage, calculateUserStats } from '../utils/UserManagement';
 
 export default function UserManagement() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  // Filters & Search
-  const [search, setSearch] = useState('');
-  const [userTypeFilter, setUserTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const perPage = 10;
-  
-  // Modals
-  const [editModal, setEditModal] = useState({ show: false, user: null });
-  const [deleteModal, setDeleteModal] = useState({ show: false, user: null });
+  // ใช้ custom hook สำหรับจัดการ state และ logic
+  const {
+    // Data
+    users,
+    loading,
+    error,
+    currentUser,
+    
+    // Pagination
+    currentPage,
+    totalPages,
+    totalUsers,
+    
+    // Filters
+    filters,
+    
+    // Modals
+    editModal,
+    deleteModal,
+    
+    // Export state
+    exportingActivity,
+    
+    // Actions
+    updateFilter,
+    clearFilters,
+    changePage,
+    nextPage,
+    previousPage,
+    refresh,
+    exportUserActivity,
+    
+    // Modal actions
+    openEditModal,
+    closeEditModal,
+    openDeleteModal,
+    closeDeleteModal,
+    handleSaveUser,
+    handleDeleteUser,
+    
+    // Computed values
+    hasData,
+    hasNextPage,
+    hasPreviousPage,
+    isFirstLoad,
+    perPage
+  } = useUserManagement();
 
-  // Current user data for permission checks
-  const [currentUser, setCurrentUser] = useState(null);
-
-  useEffect(() => {
-    const userData = localStorage.getItem('userData');
-    if (userData) {
-      setCurrentUser(JSON.parse(userData));
-    }
-    fetchUsers();
-  }, [search, userTypeFilter, statusFilter, currentPage]);
-
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      
-      const params = new URLSearchParams({
-        page: currentPage,
-        per_page: perPage,
-        ...(search && { search }),
-        ...(userTypeFilter && { user_type: userTypeFilter }),
-        ...(statusFilter && { is_active: statusFilter })
-      });
-
-      const response = await axios.get(`http://localhost:8000/api/accounts/admin/users/?${params}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      setUsers(response.data.users);
-      setTotalPages(response.data.pagination.pages);
-      setError(null);
-    } catch (error) {
-      console.error('Failed to fetch users:', error);
-      setError('ไม่สามารถโหลดข้อมูลผู้ใช้ได้');
-    } finally {
-      setLoading(false);
-    }
+  // Handle filter changes
+  const handleFilterChange = (filterName, value) => {
+    updateFilter(filterName, value);
   };
 
-  // 🆕 Handle saving from modal (รวมทุกประเภท)
-  const handleSaveUser = async (userData, saveType) => {
+  // Handle export user activity
+  const handleExportUserActivity = async (userId, username) => {
     try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      
-      // ตรวจสอบว่ามีการเปลี่ยนเเปลง user_type
-      const isPromoting = userData.user_type && userData.user_type !== editModal.user.user_type;
-
-      if (saveType === 'basic') {
-        if (isPromoting) {
-          // ใช้ promote API แทน
-          await axios.put(`http://localhost:8000/api/accounts/admin/promote-user/${editModal.user.id}/`, 
-            { user_type: userData.user_type },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-        } else {
-          // ใช้ general user update API
-          await axios.put(`http://localhost:8000/api/accounts/admin/users/${editModal.user.id}/`, 
-            userData, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-        }
+      const result = await exportUserActivity(userId, username);
+      if (result.success) {
+        alert(result.message);
+      } else {
+        alert(result.message);
       }
-      // Refresh data
-      fetchUsers();
-      
-      // แสดงข้อความสำเร็จใน modal (modal จะจัดการเอง)
-      return Promise.resolve();
-      
     } catch (error) {
-      console.error('Failed to update user:', error);
-      throw new Error('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      console.error('Export error:', error);
+      alert('ไม่สามารถส่งออก Activity Logs ได้ กรุณาลองใหม่อีกครั้ง');
     }
   };
 
-  const handleDeleteUser = async () => {
+  // Handle delete user with feedback
+  const handleDeleteUserWithFeedback = async () => {
     try {
-      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      
-      await axios.delete(`http://localhost:8000/api/accounts/admin/users/${deleteModal.user.id}/`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      setDeleteModal({ show: false, user: null });
-      fetchUsers(); // Refresh data
-      alert(`ลบผู้ใช้ ${deleteModal.user.username} สำเร็จ`);
+      const result = await handleDeleteUser();
+      if (result && result.success) {
+        alert(result.message);
+      }
     } catch (error) {
-      console.error('Failed to delete user:', error);
+      console.error('Delete error:', error);
       alert('เกิดข้อผิดพลาดในการลบผู้ใช้');
     }
   };
 
-  const canEditUser = (user) => {
-    if (currentUser?.user_type === 'superuser') return true;
-    if (currentUser?.user_type === 'admin' && user.user_type === 'user') return true;
-    return false;
-  };
-
-  const canDeleteUser = (user) => {
-    if (user.id === currentUser?.id) return false; // ไม่ให้ลบตัวเอง
-    if (currentUser?.user_type === 'superuser' && user.user_type !== 'superuser') return true;
-    if (currentUser?.user_type === 'admin' && user.user_type === 'user') return true;
-    return false;
-  };
+  // คำนวณสถิติผู้ใช้
+  const userStats = calculateUserStats(users);
 
   const styles = {
     container: {
       padding: '0'
     },
     header: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
       marginBottom: '30px'
     },
     title: {
       fontSize: '28px',
       fontWeight: '600',
       color: '#ffffff',
-      margin: 0
+      marginBottom: '8px'
     },
-    controls: {
+    subtitle: {
+      fontSize: '16px',
+      color: '#a0a0a0',
       display: 'flex',
-      gap: '15px',
-      marginBottom: '20px',
-      flexWrap: 'wrap'
+      alignItems: 'center',
+      gap: '10px'
     },
-    searchInput: {
-      padding: '10px 15px',
-      backgroundColor: '#2a2a2a',
-      border: '1px solid #3a3a3a',
-      borderRadius: '8px',
+    totalCount: {
+      backgroundColor: '#007bff',
       color: '#ffffff',
-      fontSize: '14px',
-      minWidth: '200px'
-    },
-    select: {
-      padding: '10px 15px',
-      backgroundColor: '#2a2a2a',
-      border: '1px solid #3a3a3a',
-      borderRadius: '8px',
-      color: '#ffffff',
-      fontSize: '14px'
-    },
-    table: {
-      width: '100%',
-      backgroundColor: '#2a2a2a',
+      padding: '2px 8px',
       borderRadius: '12px',
-      overflow: 'hidden',
-      border: '1px solid #3a3a3a'
-    },
-    thead: {
-      backgroundColor: '#3a3a3a'
-    },
-    th: {
-      padding: '15px',
-      textAlign: 'left',
-      color: '#ffffff',
-      fontWeight: '600',
-      borderBottom: '1px solid #4a4a4a'
-    },
-    td: {
-      padding: '15px',
-      color: '#e0e0e0',
-      borderBottom: '1px solid #3a3a3a'
-    },
-    userTypeBadge: {
-      padding: '4px 8px',
-      borderRadius: '4px',
       fontSize: '12px',
       fontWeight: '600'
-    },
-    statusBadge: {
-      padding: '4px 8px',
-      borderRadius: '4px',
-      fontSize: '12px',
-      fontWeight: '600'
-    },
-    actionButton: {
-      padding: '6px 12px',
-      borderRadius: '4px',
-      fontSize: '12px',
-      cursor: 'pointer',
-      border: 'none',
-      marginRight: '8px'
-    },
-    editButton: {
-      backgroundColor: '#007bff',
-      color: '#ffffff'
-    },
-    deleteButton: {
-      backgroundColor: '#dc3545',
-      color: '#ffffff'
-    },
-    pagination: {
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: '10px',
-      marginTop: '20px'
-    },
-    pageButton: {
-      padding: '8px 12px',
-      backgroundColor: '#2a2a2a',
-      border: '1px solid #3a3a3a',
-      borderRadius: '6px',
-      color: '#ffffff',
-      cursor: 'pointer'
-    },
-    activePageButton: {
-      backgroundColor: '#007bff',
-      borderColor: '#007bff'
-    },
-    modal: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 1000
-    },
-    modalContent: {
-      backgroundColor: '#2a2a2a',
-      borderRadius: '12px',
-      padding: '30px',
-      maxWidth: '500px',
-      width: '90%',
-      border: '1px solid #3a3a3a'
-    },
-    modalTitle: {
-      fontSize: '20px',
-      fontWeight: '600',
-      color: '#ffffff',
-      marginBottom: '20px'
-    },
-    modalButtons: {
-      display: 'flex',
-      gap: '10px',
-      justifyContent: 'flex-end',
-      marginTop: '20px'
-    },
-    modalButton: {
-      padding: '10px 20px',
-      borderRadius: '6px',
-      fontSize: '14px',
-      cursor: 'pointer',
-      border: 'none'
-    },
-    cancelButton: {
-      backgroundColor: '#6c757d',
-      color: '#ffffff'
     },
     loadingContainer: {
       display: 'flex',
@@ -289,33 +135,49 @@ export default function UserManagement() {
       borderTop: '4px solid #007bff',
       borderRadius: '50%',
       animation: 'spin 1s linear infinite'
+    },
+    errorContainer: {
+      textAlign: 'center',
+      padding: '40px',
+      color: '#ff6b6b',
+      backgroundColor: '#2a2a2a',
+      borderRadius: '12px',
+      border: '1px solid #3a3a3a'
+    },
+    errorTitle: {
+      fontSize: '18px',
+      fontWeight: '600',
+      marginBottom: '8px',
+      color: '#ff6b6b'
+    },
+    errorMessage: {
+      fontSize: '14px',
+      marginBottom: '20px',
+      lineHeight: '1.5'
+    },
+    refreshButton: {
+      backgroundColor: '#007bff',
+      color: '#ffffff',
+      border: 'none',
+      padding: '10px 20px',
+      borderRadius: '8px',
+      fontSize: '14px',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s'
     }
   };
-  
-  const getUserTypeBadgeStyle = (userType) => ({
-    ...styles.userTypeBadge,
-    backgroundColor: userType === 'superuser' ? '#ffd700' : userType === 'admin' ? '#c63232ff' : '#6c757d',
-    color: userType === 'superuser' ? '#000' : '#fff'
-  });
 
-  const getStatusBadgeStyle = (isActive) => ({
-    ...styles.statusBadge,
-    backgroundColor: isActive ? '#28a745' : '#dc3545',
-    color: '#ffffff'
-  });
-
-  const getUserTypeDisplay = (type) => {
-    const typeMap = {
-      'user': 'ผู้ใช้ทั่วไป',
-      'admin': 'แอดมิน',
-      'superuser': 'ซุปเปอร์ยูสเซอร์'
-    };
-    return typeMap[type] || type;
-  };
-
-  if (loading && users.length === 0) {
+  // Loading state สำหรับการโหลดครั้งแรก
+  if (isFirstLoad) {
     return (
       <AdminLayout>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+        
         <div style={styles.loadingContainer}>
           <div style={styles.loadingSpinner}></div>
         </div>
@@ -323,184 +185,127 @@ export default function UserManagement() {
     );
   }
 
-  return (
-    <>
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-      
+  // Error state
+  if (error && !hasData) {
+    return (
       <AdminLayout>
         <div style={styles.container}>
-          {/* Header */}
-          <div style={styles.header}>
-            <h1 style={styles.title}>จัดการผู้ใช้</h1>
-          </div>
-
-          {/* Controls */}
-          <div style={styles.controls}>
-            <input
-              type="text"
-              placeholder="ค้นหาผู้ใช้..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={styles.searchInput}
-            />
-            
-            <select
-              value={userTypeFilter}
-              onChange={(e) => setUserTypeFilter(e.target.value)}
-              style={styles.select}
+          <div style={styles.errorContainer}>
+            <h3 style={styles.errorTitle}>เกิดข้อผิดพลาด</h3>
+            <p style={styles.errorMessage}>{error}</p>
+            <button 
+              onClick={refresh}
+              style={styles.refreshButton}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
             >
-              <option value="">ทุกประเภท</option>
-              <option value="user">ผู้ใช้ทั่วไป</option>
-              <option value="admin">แอดมิน</option>
-              {currentUser?.user_type === 'superuser' && (
-                <option value="superuser">ซุปเปอร์ยูสเซอร์</option>
-              )}
-            </select>
-            
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={styles.select}
-            >
-              <option value="">ทุกสถานะ</option>
-              <option value="true">ใช้งานได้</option>
-              <option value="false">ถูกปิดใช้งาน</option>
-            </select>
-          </div>
-
-          {/* Users Table */}
-          <table style={styles.table}>
-            <thead style={styles.thead}>
-              <tr>
-                <th style={styles.th}>ชื่อผู้ใช้</th>
-                <th style={styles.th}>อีเมล</th>
-                <th style={styles.th}>ประเภท</th>
-                <th style={styles.th}>สถานะ</th>
-                <th style={styles.th}>วันที่สมัคร</th>
-                <th style={styles.th}>กิจกรรมล่าสุด</th>
-                <th style={styles.th}>การจัดการ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td style={styles.td}>{user.username}</td>
-                  <td style={styles.td}>{user.email}</td>
-                  <td style={styles.td}>
-                    <span style={getUserTypeBadgeStyle(user.user_type)}>
-                      {getUserTypeDisplay(user.user_type)}
-                    </span>
-                  </td>
-                  <td style={styles.td}>
-                    <span style={getStatusBadgeStyle(user.is_active)}>
-                      {user.is_active ? 'ใช้งานได้' : 'ปิดใช้งาน'}
-                    </span>
-                  </td>
-                  <td style={styles.td}>
-                    {new Date(user.date_joined).toLocaleDateString('th-TH')}
-                  </td>
-                  <td style={styles.td}>
-                    {user.last_activity?.action || 'ไม่มีข้อมูล'}
-                  </td>
-                  <td style={styles.td}>
-                    {canEditUser(user) && (
-                      <button
-                        onClick={() => setEditModal({ show: true, user })}
-                        style={{...styles.actionButton, ...styles.editButton}}
-                      >
-                        แก้ไข
-                      </button>
-                    )}
-                    {canDeleteUser(user) && (
-                      <button
-                        onClick={() => setDeleteModal({ show: true, user })}
-                        style={{...styles.actionButton, ...styles.deleteButton}}
-                      >
-                        ลบ
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Pagination */}
-          <div style={styles.pagination}>
-            <button
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(currentPage - 1)}
-              style={{
-                ...styles.pageButton,
-                opacity: currentPage === 1 ? 0.5 : 1,
-                cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
-              }}
-            >
-              ก่อนหน้า
-            </button>
-
-            <span style={{ color: '#e0e0e0' }}>
-              หน้า {currentPage} จาก {totalPages}
-            </span>
-
-            <button
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(currentPage + 1)}
-              style={{
-                ...styles.pageButton,
-                opacity: currentPage === totalPages ? 0.5 : 1,
-                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
-              }}
-            >
-              ถัดไป
+              ลองใหม่
             </button>
           </div>
-
-          {/* 🆕 Edit User Modal - ใช้ component ใหม่ */}
-          {editModal.show && (
-            <EditUserModal
-              user={editModal.user}
-              currentUser={currentUser}
-              onSave={handleSaveUser}
-              onCancel={() => setEditModal({ show: false, user: null })}
-              styles={styles}
-            />
-          )}
-
-          {/* Delete Confirmation Modal */}
-          {deleteModal.show && (
-            <div style={styles.modal}>
-              <div style={styles.modalContent}>
-                <h3 style={styles.modalTitle}>ยืนยันการลบผู้ใช้</h3>
-                <p style={{ color: '#e0e0e0', marginBottom: '20px' }}>
-                  คุณแน่ใจหรือไม่ที่จะลบผู้ใช้ <strong>{deleteModal.user.username}</strong>?
-                  <br />
-                  การกระทำนี้ไม่สามารถย้อนกลับได้
-                </p>
-                <div style={styles.modalButtons}>
-                  <button
-                    onClick={() => setDeleteModal({ show: false, user: null })}
-                    style={{...styles.modalButton, ...styles.cancelButton}}
-                  >
-                    ยกเลิก
-                  </button>
-                  <button
-                    onClick={handleDeleteUser}
-                    style={{...styles.modalButton, backgroundColor: '#dc3545', color: '#ffffff'}}
-                  >
-                    ลบผู้ใช้
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </AdminLayout>
-    </>
+    );
+  }
+
+  // Main render
+  return (
+    <AdminLayout>
+      <div style={styles.container}>
+        {/* Header */}
+        <div style={styles.header}>
+          <h1 style={styles.title}>จัดการผู้ใช้ (User Management)</h1>
+          <p style={styles.subtitle}>
+            {formatStatsMessage(userStats)}
+            {totalUsers > 0 && (
+              <span style={styles.totalCount}>
+                {totalUsers.toLocaleString()} คน
+              </span>
+            )}
+          </p>
+        </div>
+
+        {/* Filter Panel */}
+        <UserFilters
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onClearFilters={clearFilters}
+          currentUser={currentUser}
+          totalUsers={totalUsers}
+          hasData={hasData}
+        />
+
+        {/* Error notification (ถ้ามีข้อมูลแสดงอยู่แล้ว) */}
+        {error && hasData && (
+          <div style={{
+            backgroundColor: '#dc3545',
+            color: '#ffffff',
+            padding: '10px 15px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px'
+          }}>
+            {error}
+          </div>
+        )}
+
+        {/* Users Table */}
+        <UserTable 
+          users={users} 
+          loading={loading}
+          currentUser={currentUser}
+          onEditUser={openEditModal}
+          onDeleteUser={openDeleteModal}
+          onExportUserActivity={handleExportUserActivity}
+          exportingActivity={exportingActivity}
+        />
+
+        {/* Pagination */}
+        <UserPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalUsers={totalUsers}
+          perPage={perPage}
+          onPageChange={changePage}
+          onPreviousPage={previousPage}
+          onNextPage={nextPage}
+          hasNextPage={hasNextPage}
+          hasPreviousPage={hasPreviousPage}
+        />
+
+        {/* Edit User Modal - ใช้ modal เดิม */}
+        {editModal.show && (
+          <EditUserModal
+            user={editModal.user}
+            currentUser={currentUser}
+            onSave={handleSaveUser}
+            onCancel={closeEditModal}
+            styles={{
+              modal: {
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 2000  // เพิ่ม z-index สูง
+              }
+            }}
+          />
+        )}
+
+        {/* Delete User Modal - ใช้ modal ใหม่ */}
+        {deleteModal.show && (
+          <DeleteUserModal
+            user={deleteModal.user}
+            onConfirm={handleDeleteUserWithFeedback}
+            onCancel={closeDeleteModal}
+            loading={loading}
+          />
+        )}
+      </div>
+    </AdminLayout>
   );
 }

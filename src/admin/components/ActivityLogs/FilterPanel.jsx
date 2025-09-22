@@ -3,6 +3,8 @@ import React from 'react';
 import { actionOptions, dateOptions, userTypeOptions } from '../../utils/ActivityLogs';
 import { exportActivityLogsToCSV } from '../../utils/exportCSV';
 import { formatDetails } from '../../utils/ActivityLogs';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFileExport } from '@fortawesome/free-solid-svg-icons';
 
 const FilterPanel = ({
   filters,
@@ -246,12 +248,12 @@ const FilterPanel = ({
         >
           {exportingCsv ? (
             <>
-              <span>⏳</span>
-              กำลังสร้าง CSV...
+              <FontAwesomeIcon icon={faFileExport} spin />
+              กำลังส่งออก CSV..
             </>
           ) : (
             <>
-              <span>📄</span>
+              <FontAwesomeIcon icon={faFileExport} />
               Export CSV
             </>
           )}

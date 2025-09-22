@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import get_user_model  
-from .serializers import RegisterSerializer
+from ..accounts.serializers import RegisterSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView as BaseTokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -13,8 +13,8 @@ from datetime import timedelta
 import uuid                       
 
 # เพิ่ม import สำหรับ logging system และ guest tracking
-from .models import UserActivityLog
-from .utils import (
+from ..accounts.models import UserActivityLog
+from ..accounts.utils import (
     check_export_permission, 
     increment_export_count, 
     get_export_limits_info,

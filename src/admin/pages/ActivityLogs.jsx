@@ -166,7 +166,7 @@ export default function ActivityLogs() {
       <div style={styles.container}>
         {/* Header */}
         <div style={styles.header}>
-          <h1 style={styles.title}>Activity Logs</h1>
+          <h1 style={styles.title}>บันทึกกิจกรรม (Activity Logs)</h1>
           <p style={styles.subtitle}>
             บันทึกการใช้งานระบบทั้งหมด
             {totalLogs > 0 && (

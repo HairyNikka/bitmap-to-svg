@@ -226,7 +226,7 @@ const styles = {
 
   progressContainer: {
     maxWidth: '800px',
-    margin: '60px auto 40px auto',
+    margin: '5px auto 5px auto',
     backgroundColor: '#2a2a2a',
     borderRadius: '16px',
     padding: '24px',
@@ -256,7 +256,7 @@ const styles = {
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     position: 'relative',
-    marginBottom: '20px'
+    marginBottom: '10px'
   },
 
   stepContainer: {
