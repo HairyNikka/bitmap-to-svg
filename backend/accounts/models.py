@@ -164,7 +164,18 @@ class User(AbstractUser):
             
         return max(0, self.daily_export_limit - self.daily_exports_used)
     
-    
+    def increment_conversion_count(self):
+        """เพิ่มจำนวนการแปลงทั้งหมด"""
+        self.total_conversions += 1
+        self.save()
+
+    def get_remaining_conversions_today(self):
+        """ดูจำนวนการแปลงที่เหลือ (สำหรับแสดงใน logs)"""
+        # ตอนนี้การแปลงไม่มีขีดจำกัด
+        if self.user_type in ['admin', 'superuser']:
+            return -1  # ไม่จำกัด
+        return -1  # ผู้ใช้ทั่วไปก็ไม่จำกัดการแปลง เฉพาะการส่งออกเท่านั้น
+
     # Other methods (ไม่เปลี่ยน)
     def is_admin_or_superuser(self):
         """ตรวจสอบว่าเป็น admin หรือ superuser"""

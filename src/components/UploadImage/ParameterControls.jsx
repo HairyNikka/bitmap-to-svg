@@ -20,7 +20,7 @@ const ParameterControls = ({ options, setOptions, resetTrigger, onParameterAdjus
     qtres: 1,
     mincolorratio: 0.02,
     linefilter: false,
-    rightangle: false
+    rightangleenhance: false
   };
 
   const [localOptions, setLocalOptions] = useState(defaultOptions);
@@ -165,7 +165,7 @@ const ParameterControls = ({ options, setOptions, resetTrigger, onParameterAdjus
           description: "ลดเส้นที่ซ้ำซ้อนกันออก",
           type: "checkbox"
         },
-        rightangle: {
+        rightangleenhance: {
           label: "บังคับมุมฉาก",
           description: "แปลงเส้นโค้งเป็นมุมฉาก",
           type: "checkbox"
