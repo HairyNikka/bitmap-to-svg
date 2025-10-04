@@ -1,52 +1,20 @@
 // src/components/SvgPreview/SvgPreview.jsx
-import React, { useState, forwardRef, useImperativeHandle, useRef, useEffect, useMemo } from 'react';
+import React, { useState, forwardRef, useImperativeHandle, useRef } from 'react';
 import ImageTracer from 'imagetracerjs';
 import { Canvg } from 'canvg';
-import ExportPreview from '../ExportPreview/ExportPreview';
 import ImageComparisonView from './ImageComparisonView';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDownload, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 
-const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isParameterAdjusting }, ref) => {
+const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isParameterAdjusting, setCachedPng, setNaturalSize }, ref) => {
   const [svg, setSvg] = useState(null);
-  const [cachedPng, setCachedPng] = useState(null);
-  const [showExport, setShowExport] = useState(false);
+  const [cachedPng, setCachedPngLocal] = useState(null);
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [buttonWidth, setButtonWidth] = useState(500);
 
   const naturalSize = useRef({ width: 0, height: 0 });
   const uploadedFilename = filename;
-
-  // 📱 ฟังก์ชันคำนวณความกว้างปุ่มตามหน้าจอ
-  const getButtonWidth = () => {
-    const width = window.innerWidth;
-    if (width < 480) return 280;   // มือถือเล็ก
-    if (width < 768) return 320;   // มือถือใหญ่  
-    if (width < 1024) return 400;  // แท็บเล็ต
-    return 500; // Desktop
-  };
-
-  // 🔄 Debounced resize handler
-  const debouncedResize = useMemo(() => {
-    let timeoutId;
-    return () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        setButtonWidth(getButtonWidth());
-      }, 150);
-    };
-  }, []);
-
-  // 📐 Setup responsive ตอน mount และ resize
-  useEffect(() => {
-    setButtonWidth(getButtonWidth());
-    window.addEventListener('resize', debouncedResize);
-    return () => {
-      window.removeEventListener('resize', debouncedResize);
-    };
-  }, [debouncedResize]);
 
   const convertSvgToPng = async (svgString) => {
     const canvas = document.createElement('canvas');
@@ -58,14 +26,13 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
     return canvas.toDataURL("image/png");
   };
 
-  // ฟังก์ชันสำหรับบันทึก conversion log
   const logConversion = async (filename, fileSize) => {
     try {
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       
       if (!token) {
         console.log('User not logged in, skipping conversion logging');
-        return true; // อนุญาตให้แปลงต่อสำหรับ guest
+        return true;
       }
 
       const response = await axios.post('http://localhost:8000/api/accounts/log-conversion/', {
@@ -80,32 +47,31 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
     } catch (error) {
       console.error('Failed to log conversion:', error);
       
-      // ถ้าเกิน limit จะได้ 429 status
       if (error.response?.status === 429) {
         alert(`เกินจำนวนการแปลงที่อนุญาตต่อวัน\nเหลือ: ${error.response.data.remaining || 0} ครั้ง`);
-        return false; // ไม่อนุญาตให้แปลง
+        return false;
       }
       
-      return true; // error อื่นๆ ให้แปลงต่อได้
+      return true;
     }
   };
 
   const handleGenerate = async () => {
-    if (converting) return; // ป้องกันการคลิกซ้ำ
+    if (converting) return;
     setConverting(true);
     setProgress(0);
 
     try {
       if (!imageSrc) return;
 
-      // Step 1: ตรวจสอบ conversion limit (10%)
       setProgress(10);
       const canProceed = await logConversion(uploadedFilename, imageSrc.length);
       if (!canProceed) {
-        return; // หยุดการแปลงถ้าเกิน limit
+        setProgress(0);
+        setConverting(false);
+        return;
       }
 
-      // Step 2: โหลดและเตรียมภาพ (30%)
       setProgress(30);
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -116,8 +82,11 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
           const naturalWidth = img.naturalWidth;
           const naturalHeight = img.naturalHeight;
           naturalSize.current = { width: naturalWidth, height: naturalHeight };
+          
+          if (setNaturalSize) {
+            setNaturalSize({ width: naturalWidth, height: naturalHeight });
+          }
 
-          // Step 3: สร้าง canvas และ apply filters (50%)
           setProgress(50);
           const canvas = document.createElement('canvas');
           canvas.width = naturalWidth;
@@ -128,7 +97,6 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
           ctx.drawImage(img, 0, 0);
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-          // Step 4: แปลงเป็น SVG (70%)
           setProgress(70);
           const finalOptions = {
             ...options,
@@ -139,7 +107,6 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
 
           const result = ImageTracer.imagedataToSVG(imageData, finalOptions);
 
-          // Step 5: ประมวลผล SVG (85%)
           setProgress(85);
           const parser = new DOMParser();
           const doc = parser.parseFromString(result, "image/svg+xml");
@@ -154,45 +121,46 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
           const serializer = new XMLSerializer();
           const updatedSVG = serializer.serializeToString(doc.documentElement);
 
-          // Step 6: สร้าง PNG cache และเสร็จสิ้น (100%)
           setProgress(95);
           setSvg(updatedSVG);
           setSvgData(updatedSVG);
+          
           const pngData = await convertSvgToPng(updatedSVG);
-          setCachedPng(pngData);
+          setCachedPngLocal(pngData);
+          
+          if (setCachedPng) {
+            setCachedPng(pngData);
+          }
           
           setProgress(100);
-          // รอ 500ms ให้เห็น 100% แล้วค่อยซ่อน progress
           setTimeout(() => {
             setProgress(0);
+            setConverting(false);
           }, 500);
         } catch (error) {
           console.error('Error during conversion:', error);
           setProgress(0);
+          setConverting(false);
         }
       };
 
       img.onerror = () => {
         console.error('Failed to load image');
         setProgress(0);
+        setConverting(false);
       };
     } catch (error) {
       console.error('Conversion failed:', error);
       setProgress(0);
-    } finally {
-      setTimeout(() => {
-        setConverting(false);
-      }, 500); // รอให้ progress bar หาย
+      setConverting(false);
     }
   };
 
-  // ✅ เพิ่ม ref สำหรับ ImageComparisonView
   const imageComparisonRef = useRef();
 
   const resetView = () => {
     setProgress(0);
     setConverting(false);
-    // เรียก reset ของ ImageComparisonView
     imageComparisonRef.current?.resetView();
   };
 
@@ -204,42 +172,42 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
   // Styles
   const styles = {
     container: {
-      marginTop: '4px'
+      marginTop: '4px',
+      position: 'relative'
     },
-    downloadButton: {
+    progressContainer: {
       width: '100%',
-      padding: '12px',
-      backgroundColor: converting ? '#333' : '#1e1e1e',
-      color: converting ? '#666' : 'white',
-      borderRadius: '10px',
-      fontSize: '16px',
-      border: '1px solid #444',
-      cursor: converting ? 'not-allowed' : 'pointer',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: '8px',
-      transition: 'all 0.2s ease',
-      boxShadow: '0 0 0 1px transparent',
-      position: 'relative',
-      overflow: 'hidden'
+      marginTop: '16px',
+      marginLeft: '55px'  // เท่ากับ container
     },
     progressBar: {
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      height: '3px',
-      backgroundColor: '#4ade80',
+      width: '1010px',  // ✅ เปลี่ยนจาก 1030px เป็น 1010px (500 + 10 + 500)
+      height: '6px',
+      backgroundColor: '#2a2a2a',
+      borderRadius: '3px',
+      overflow: 'hidden',
+      border: '1px solid #444',
+      position: 'relative'
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: '#10b981',
       transition: 'width 0.3s ease',
-      borderRadius: '0 0 10px 10px'
+      borderRadius: '3px',
+      boxShadow: '0 0 10px rgba(16, 185, 129, 0.5)'
+    },
+    progressText: {
+      textAlign: 'center',
+      marginTop: '8px',
+      fontSize: '13px',
+      color: '#888',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px'
     },
     spinner: {
       animation: 'spin 1s linear infinite'
-    },
-    loadingText: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px'
     }
   };
 
@@ -253,82 +221,31 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
       `}</style>
       
       <div style={styles.container}>
-          <>
-            {/* Image Comparison View */}
-            <ImageComparisonView
-              ref={imageComparisonRef}
-              imageSrc={imageSrc}
-              svg={svg}
-              cachedPng={cachedPng}
-              isParameterAdjusting={isParameterAdjusting}
-            />
-            
-            {/* Download Button */}
-            {(converting || (svg && svg.includes('<path'))) && (
-              <div style={{ 
-                marginTop: '10px', 
-                width: `${buttonWidth}px`, 
-                margin: '10px 0 0 calc(50% + 45px)',  
-                padding: '0 10px' // เพิ่ม padding สำหรับมือถือ
-              }}>
-                <button
-                  onClick={() => setShowExport(true)}
-                  disabled={converting}
-                  style={{
-                    ...styles.downloadButton,
-                    fontSize: buttonWidth < 320 ? '14px' : '16px', // ปรับขนาดฟอนต์
-                    padding: buttonWidth < 320 ? '10px' : '12px'    // ปรับ padding
-                  }}
-                  onMouseEnter={e => {
-                    if (!converting) {
-                      e.currentTarget.style.backgroundColor = '#2a2a2a';
-                      e.currentTarget.style.boxShadow = '0 0 0 1px #4ade80';
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!converting) {
-                      e.currentTarget.style.backgroundColor = '#1e1e1e';
-                      e.currentTarget.style.boxShadow = '0 0 0 1px transparent';
-                    }
-                  }}
-                >
-                  {/* Progress Bar */}
-                  {converting && (
-                    <div 
-                      style={{
-                        ...styles.progressBar,
-                        width: `${progress}%`
-                      }} 
-                    />
-                  )}
-                  
-                  {/* Button Content */}
-                  {converting ? (
-                    <div style={styles.loadingText}>
-                      <FontAwesomeIcon icon={faSpinner} style={styles.spinner} />
-                      กำลังแปลง... {progress}%
-                    </div>
-                  ) : (
-                    <>
-                      <FontAwesomeIcon icon={faDownload} />
-                      ดาวน์โหลด
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </>
+        {/* Image Comparison View */}
+        <ImageComparisonView
+          ref={imageComparisonRef}
+          imageSrc={imageSrc}
+          svg={svg}
+          cachedPng={cachedPng}
+          isParameterAdjusting={isParameterAdjusting}
+        />
         
-        {/* Export Modal */}
-        {showExport && (
-          <ExportPreview
-            svg={svg}
-            cachedPng={cachedPng}
-            filename={uploadedFilename}
-            dimensions={naturalSize.current}
-            colorCount={options.numberofcolors}
-            onClose={() => setShowExport(false)}
-          />
+        {/* Progress Bar - แสดงใต้กล่อง preview */}
+        {converting && (
+          <div style={styles.progressContainer}>
+            <div style={styles.progressBar}>
+              <div 
+                style={{
+                  ...styles.progressFill,
+                  width: `${progress}%`
+                }}
+              />
+            </div>
+            <div style={styles.progressText}>
+              <FontAwesomeIcon icon={faSpinner} style={styles.spinner} />
+              กำลังแปลง... {progress}%
+            </div>
+          </div>
         )}
       </div>
     </>

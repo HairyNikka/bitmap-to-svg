@@ -50,7 +50,10 @@ class UserActivityLogInline(admin.TabularInline):
     action_display.short_description = 'Action'
     
     def timestamp_formatted(self, obj):
-        return obj.timestamp.strftime('%Y-%m-%d %H:%M')
+        from zoneinfo import ZoneInfo
+        bangkok_tz = ZoneInfo("Asia/Bangkok")
+        local_time = obj.timestamp.astimezone(bangkok_tz)
+        return local_time.strftime('%Y-%m-%d %H:%M')
     timestamp_formatted.short_description = 'Time'
     
     def details_summary(self, obj):
@@ -69,7 +72,7 @@ class UserAdmin(BaseUserAdmin):
     
     list_display = [
         'username', 'email', 'user_type_display', 'status_display', 
-        'export_usage_display', 'total_exports', 'last_login_formatted', 'date_joined_formatted'
+        'export_usage_display', 'total_conversions', 'total_exports', 'last_login_formatted', 'date_joined_formatted'
     ]
     
     list_filter = [
@@ -139,12 +142,20 @@ class UserAdmin(BaseUserAdmin):
     
     def last_login_formatted(self, obj):
         """Format last login date"""
-        return obj.last_login.strftime('%Y-%m-%d %H:%M') if obj.last_login else 'Never'
+        if not obj.last_login:
+            return 'Never'
+        from zoneinfo import ZoneInfo
+        bangkok_tz = ZoneInfo("Asia/Bangkok")
+        local_time = obj.last_login.astimezone(bangkok_tz)
+        return local_time.strftime('%Y-%m-%d %H:%M')
     last_login_formatted.short_description = 'Last Login'
     
     def date_joined_formatted(self, obj):
         """Format join date"""
-        return obj.date_joined.strftime('%Y-%m-%d')
+        from zoneinfo import ZoneInfo
+        bangkok_tz = ZoneInfo("Asia/Bangkok")
+        local_time = obj.date_joined.astimezone(bangkok_tz)
+        return local_time.strftime('%Y-%m-%d')
     date_joined_formatted.short_description = 'Joined'
     
     # Permission controls
@@ -175,7 +186,30 @@ class UserAdmin(BaseUserAdmin):
         """Customize form based on user permissions"""
         form = super().get_form(request, obj, **kwargs)
         
-        # Hide sensitive fields from non-superusers
+        # เพิ่มส่วนนี้ - แปลง security questions เป็น dropdown
+        from django import forms
+        
+        if 'security_question_1' in form.base_fields:
+            form.base_fields['security_question_1'] = forms.ChoiceField(
+                choices=[('', '--- Select Question ---')] + [
+                    (q, q) for q in User.get_predefined_security_questions()
+                ],
+                required=False,
+                label='Security Question 1',
+                help_text='Security question for password recovery'
+            )
+        
+        if 'security_question_2' in form.base_fields:
+            form.base_fields['security_question_2'] = forms.ChoiceField(
+                choices=[('', '--- Select Question ---')] + [
+                    (q, q) for q in User.get_predefined_security_questions()
+                ],
+                required=False,
+                label='Security Question 2', 
+                help_text='Security question for password recovery'
+            )
+        
+        # Hide sensitive fields from non-superusers (โค้ดเดิม)
         if request.user.user_type != 'superuser':
             sensitive_fields = ['is_superuser', 'user_permissions', 'groups']
             for field in sensitive_fields:
@@ -307,7 +341,10 @@ class UserActivityLogAdmin(admin.ModelAdmin):
     
     def timestamp_formatted(self, obj):
         """Format timestamp"""
-        return obj.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        from zoneinfo import ZoneInfo
+        bangkok_tz = ZoneInfo("Asia/Bangkok")
+        local_time = obj.timestamp.astimezone(bangkok_tz)
+        return local_time.strftime('%Y-%m-%d %H:%M:%S')
     timestamp_formatted.short_description = 'Time'
     
     def user_type_display(self, obj):
@@ -446,14 +483,20 @@ class GuestSessionAdmin(admin.ModelAdmin):
     
     def last_activity_formatted(self, obj):
         """Format last activity date"""
-        if obj.last_activity:
-            return obj.last_activity.strftime('%Y-%m-%d %H:%M')
-        return '-'
+        if not obj.last_activity:
+            return '-'
+        from zoneinfo import ZoneInfo
+        bangkok_tz = ZoneInfo("Asia/Bangkok")
+        local_time = obj.last_activity.astimezone(bangkok_tz)
+        return local_time.strftime('%Y-%m-%d %H:%M')
     last_activity_formatted.short_description = 'Last Activity'
     
     def created_at_formatted(self, obj):
         """Format creation date"""
-        return obj.created_at.strftime('%Y-%m-%d %H:%M')
+        from zoneinfo import ZoneInfo
+        bangkok_tz = ZoneInfo("Asia/Bangkok")
+        local_time = obj.created_at.astimezone(bangkok_tz)
+        return local_time.strftime('%Y-%m-%d %H:%M')
     created_at_formatted.short_description = 'Created'
     
     # Custom actions

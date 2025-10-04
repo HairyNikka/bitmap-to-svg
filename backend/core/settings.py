@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-pn@48o(!k86yy)_n^n!sc#mz(li9s_x6=q5jdfvr_*a_x^6!9h
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -163,10 +163,10 @@ CORS_ALLOW_HEADERS = [
     'x-guest-id',  
 ]
 
-# ✅ อนุญาต credentials
+# อนุญาต credentials
 CORS_ALLOW_CREDENTIALS = True
 
-# ✅ CSRF Settings
+# CSRF Settings
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -178,7 +178,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),     # Token หลักอายุ 15 นาที
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),     # Token หลักอายุ 15 นาที
     'REFRESH_TOKEN_LIFETIME': timedelta(hours=24),      # Token สำรองอายุ 1 วัน
     'ROTATE_REFRESH_TOKENS': False,                     # ไม่หมุนเวียน refresh token
     'ALGORITHM': 'HS256',

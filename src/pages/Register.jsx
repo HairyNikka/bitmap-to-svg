@@ -32,6 +32,10 @@ export default function Register() {
   const [securityQuestions, setSecurityQuestions] = useState(null);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({}); // เพิ่ม state เช็คว่าผู้ใช้แตะ field แล้วหรือยัง
+  const [emailChecking, setEmailChecking] = useState(false);  
+  const [usernameChecking, setUsernameChecking] = useState(false);  
+  const [emailAvailable, setEmailAvailable] = useState(null);  
+  const [usernameAvailable, setUsernameAvailable] = useState(null);  
 
   const navigate = useNavigate();
 
@@ -42,6 +46,64 @@ export default function Register() {
       validateBasicForm();
     }
   }, [username, email, password, confirmPassword, touched]);
+
+  // Email availability check
+  useEffect(() => {
+    const checkEmail = setTimeout(async () => {
+      if (email && touched.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setEmailChecking(true);
+        try {
+          const response = await fetch(`http://localhost:8000/api/accounts/check-email/?email=${email}`);
+          const data = await response.json();
+          setEmailAvailable(data.available);
+          
+          if (!data.available) {
+            setErrors(prev => ({...prev, email: 'อีเมลนี้มีผู้ใช้งานแล้ว'}));
+          } else if (errors.email === 'อีเมลนี้มีผู้ใช้งานแล้ว') {
+            // ลบ error ถ้าอีเมลใช้ได้แล้ว
+            const newErrors = {...errors};
+            delete newErrors.email;
+            setErrors(newErrors);
+          }
+        } catch (error) {
+          console.error('Email check failed:', error);
+        } finally {
+          setEmailChecking(false);
+        }
+      }
+    }, 500); // debounce 500ms
+  
+    return () => clearTimeout(checkEmail);
+  }, [email, touched.email]);
+
+  // Username availability check
+useEffect(() => {
+  const checkUsername = setTimeout(async () => {
+    if (username && touched.username && username.length >= 3) {
+      setUsernameChecking(true);
+      try {
+        const response = await fetch(`http://localhost:8000/api/accounts/check-username/?username=${username}`);
+        const data = await response.json();
+        setUsernameAvailable(data.available);
+        
+        if (!data.available) {
+          setErrors(prev => ({...prev, username: 'ชื่อผู้ใช้นี้มีผู้ใช้งานแล้ว'}));
+        } else if (errors.username === 'ชื่อผู้ใช้นี้มีผู้ใช้งานแล้ว') {
+          // ลบ error ถ้า username ใช้ได้แล้ว
+          const newErrors = {...errors};
+          delete newErrors.username;
+          setErrors(newErrors);
+        }
+      } catch (error) {
+        console.error('Username check failed:', error);
+      } finally {
+        setUsernameChecking(false);
+      }
+    }
+  }, 500); // debounce 500ms
+  
+  return () => clearTimeout(checkUsername);
+}, [username, touched.username]);
 
   // Real-time validation
   const validateBasicForm = () => {
@@ -143,11 +205,18 @@ export default function Register() {
     handleFinalSubmit({});
   };
 
+  const spinnerKeyframes = `
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+      }
+  `;
 
 
   if (success) {
     return (
       <div style={styles.container}>
+        <style>{spinnerKeyframes}</style>
         <div style={styles.card}>
           <div style={styles.successContainer}>
             <FontAwesomeIcon icon={faCheck} style={styles.successIcon} />
@@ -337,25 +406,76 @@ export default function Register() {
                   <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
                 </button>
               </div>
-              {errors.confirmPassword && (
-                <div style={styles.errorText}>
-                  <FontAwesomeIcon icon={faExclamation} style={styles.errorIcon} />
-                  {errors.confirmPassword}
-                </div>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || Object.keys(errors).length > 0 || !username || !email || !password || !confirmPassword}
-              style={{
-                ...styles.button,
-                ...(Object.keys(errors).length === 0 && username && email && password && confirmPassword ? styles.buttonActive : styles.buttonDisabled)
-              }}
-            >
-              <FontAwesomeIcon icon={faShield} style={styles.buttonIcon} />
-              ต่อไป - ตั้งคำถามความปลอดภัย
-            </button>
+                {confirmPassword && password && (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: password === confirmPassword ? 
+                      'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)',
+                    border: password === confirmPassword ?
+                      '1px solid #28a745' : '1px solid #dc3545',
+                    color: password === confirmPassword ? '#28a745' : '#dc3545'
+                  }}>
+                    <FontAwesomeIcon icon={password === confirmPassword ? faCheck : faExclamation} />
+                    {password === confirmPassword ? 'รหัสผ่านตรงกัน' : 'รหัสผ่านไม่ตรงกัน'}
+                  </div>
+                )}
+                
+                {errors.confirmPassword && (
+                  <div style={styles.errorText}>
+                    <FontAwesomeIcon icon={faExclamation} style={styles.errorIcon} />
+                    {errors.confirmPassword}
+                  </div>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={
+                  loading || 
+                  Object.keys(errors).length > 0 || 
+                  !username || 
+                  !email || 
+                  !password || 
+                  !confirmPassword ||
+                  usernameChecking ||
+                  emailChecking ||
+                  usernameAvailable === false ||
+                  emailAvailable === false
+                }
+                style={{
+                  ...styles.button,
+                  ...(
+                    Object.keys(errors).length === 0 && 
+                    username && 
+                    email && 
+                    password && 
+                    confirmPassword &&
+                    !usernameChecking &&
+                    !emailChecking &&
+                    usernameAvailable !== false &&
+                    emailAvailable !== false
+                      ? styles.buttonActive 
+                      : styles.buttonDisabled
+                  )
+                }}
+              >
+                {(usernameChecking || emailChecking) ? (
+                  <>
+                    <div style={styles.spinner}></div>
+                    กำลังตรวจสอบ...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faShield} style={styles.buttonIcon} />
+                    ต่อไป - ตั้งคำถามความปลอดภัย
+                  </>
+                )}
+              </button>
           </form>
         ) : (
           <SecurityQuestionsSetup
@@ -615,5 +735,13 @@ const styles = {
   },
   backIcon: {
       fontSize: '12px'
+  },
+  spinner: {
+    width: '16px',
+    height: '16px',
+    border: '2px solid rgba(255, 255, 255, 0.3)',
+    borderTop: '2px solid #ffffff',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite'
   },
 };

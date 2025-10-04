@@ -11,7 +11,9 @@ from .auth_views import (
     login_view,
     logout_view,
     CustomTokenObtainPairView,
-    jwt_logout_view
+    jwt_logout_view,
+    check_email_availability,  
+    check_username_availability
 )
 
 # Password & Security Views
@@ -38,7 +40,7 @@ from .activity_views import (
 # Profile Management Views
 from .profile_views import (
     update_profile,
-    admin_promote_user
+    admin_promote_user,
 )
 
 # Admin Views (คงเดิมอยู่ในไฟล์ admin_views.py ระดับเดียวกับ views/)
@@ -52,6 +54,8 @@ __all__ = [
     'logout_view',
     'CustomTokenObtainPairView',
     'jwt_logout_view',
+    'check_email_availability',
+    'check_username_availability',
     
     # Password & Security
     'forgot_password',

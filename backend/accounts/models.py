@@ -21,7 +21,7 @@ class User(AbstractUser):
         max_length=10, 
         choices=USER_TYPES, 
         default='user',
-        verbose_name='ประเภทผู้ใช้',
+        verbose_name='User Type',
         help_text='ระดับสิทธิ์การใช้งาน'
     )
     
@@ -29,64 +29,64 @@ class User(AbstractUser):
     daily_export_limit = models.IntegerField(
         default=10,  # เปลี่ยนจาก 50 เป็น 10 สำหรับ user ปกติ
         validators=[MinValueValidator(1), MaxValueValidator(1000)],
-        verbose_name='จำกัดการส่งออกต่อวัน',
+        verbose_name='Daily Export Limit',
         help_text='จำนวนครั้งสูงสุดที่ส่งออกไฟล์ได้ต่อวัน'
     )
     daily_exports_used = models.IntegerField(
         default=0,
         validators=[MinValueValidator(0)],
-        verbose_name='จำนวนการส่งออกที่ใช้วันนี้'
+        verbose_name='Daily Exports Used'
     )
     last_export_date = models.DateField(
         null=True, 
         blank=True,
-        verbose_name='วันที่ส่งออกครั้งล่าสุด'
+        verbose_name='Last Export Date'
     )
     
     # สถิติการใช้งาน
     total_conversions = models.IntegerField(
         default=0,
-        verbose_name='จำนวนการแปลงทั้งหมด'
+        verbose_name='Total Conversions'
     )
     total_exports = models.IntegerField(
         default=0,
-        verbose_name='จำนวนการส่งออกทั้งหมด'
+        verbose_name='Total Exports'
     )
     
-    # 🔐 Security Questions สำหรับ Password Reset
+    # Security Questions สำหรับ Password Reset
     security_question_1 = models.CharField(
         max_length=200,
         blank=True,
         null=True,
-        verbose_name='คำถามความปลอดภัยข้อ 1',
-        help_text='คำถามสำหรับรีเซ็ตรหัสผ่าน'
+        verbose_name='Security Question 1',
+        help_text='Security question for password recovery'
     )
     security_answer_1 = models.CharField(
         max_length=200,
         blank=True,
         null=True,
-        verbose_name='คำตอบคำถามข้อ 1',
-        help_text='คำตอบสำหรับคำถามข้อ 1 (จะถูกแปลงเป็นตัวพิมพ์เล็ก)'
+        verbose_name='Security Answer 1',
+        help_text='Answer for security question 1'
     )
     security_question_2 = models.CharField(
         max_length=200,
         blank=True,
         null=True,
-        verbose_name='คำถามความปลอดภัยข้อ 2',
-        help_text='คำถามสำหรับรีเซ็ตรหัสผ่าน'
+        verbose_name='Security Question 2',
+        help_text='Security question for password recovery'
     )
     security_answer_2 = models.CharField(
         max_length=200,
         blank=True,
         null=True,
-        verbose_name='คำตอบคำถามข้อ 2',
-        help_text='คำตอบสำหรับคำถามข้อ 2 (จะถูกแปลงเป็นตัวพิมพ์เล็ก)'
+        verbose_name='Security Answer 2',
+        help_text='Answer for security question 2'
     )
 
 
     class Meta:
-        verbose_name = 'ผู้ใช้'
-        verbose_name_plural = 'ผู้ใช้'
+        verbose_name = 'User'
+        verbose_name_plural = 'Users'
         ordering = ['-date_joined']
     
     def __str__(self):
@@ -116,14 +116,6 @@ class User(AbstractUser):
         bangkok_tz = ZoneInfo("Asia/Bangkok")
         bangkok_time = timezone.now().astimezone(bangkok_tz)
         today = bangkok_time.date()
-        
-        # ✅ Debug logs - ไม่มี emoji
-        print(f"DEBUG Reset Check - {self.username}:")
-        print(f"   UTC time: {timezone.now()}")
-        print(f"   Bangkok time: {bangkok_time}")
-        print(f"   Today (Bangkok): {today}")
-        print(f"   Last export date: {self.last_export_date}")
-        print(f"   Current exports used: {self.daily_exports_used}")
         
         if self.last_export_date != today:
             print(f"RESET! Different date detected")
@@ -189,7 +181,7 @@ class User(AbstractUser):
         """เฉพาะ superuser เท่านั้นที่ลบ admin ได้"""
         return self.user_type == 'superuser'
 
-    # 🔐 Security Questions Methods
+    #  Security Questions Methods
     def has_security_questions(self):
         """ตรวจสอบว่ามีคำถามความปลอดภัยหรือไม่"""
         return bool(
@@ -300,13 +292,13 @@ class GuestSession(models.Model):
     def reset_daily_exports_if_new_day(self):
         """Reset การนับการส่งออกรายวันถ้าเป็นวันใหม่"""
         
-        # ✅ ใช้ zoneinfo สำหรับ Python 3.11
+        # ใช้ zoneinfo สำหรับ Python 3.11
         from zoneinfo import ZoneInfo
         bangkok_tz = ZoneInfo("Asia/Bangkok")
         bangkok_time = timezone.now().astimezone(bangkok_tz)
         today = bangkok_time.date()
         
-        # ✅ Debug logs - ไม่มี emoji
+        # Debug logs 
         print(f"DEBUG Reset Check - Guest {self.guest_id[:8]}:")
         print(f"   UTC time: {timezone.now()}")
         print(f"   Bangkok time: {bangkok_time}")
@@ -404,29 +396,29 @@ class UserActivityLog(models.Model):
         User, 
         on_delete=models.CASCADE, 
         related_name='activity_logs',
-        verbose_name='ผู้ใช้'
+        verbose_name='User'
     )
     action = models.CharField(
         max_length=50, 
         choices=ACTION_CHOICES,
-        verbose_name='การกระทำ'
+        verbose_name='Action'
     )
     timestamp = models.DateTimeField(
         auto_now_add=True,
-        verbose_name='เวลา',
+        verbose_name='Timestamp',
         db_index=True  # เพิ่ม index สำหรับการค้นหา
     )
     details = models.JSONField(
         null=True, 
         blank=True,
-        verbose_name='รายละเอียดเพิ่มเติม',
-        help_text='ข้อมูลเพิ่มเติม เช่น ชื่อไฟล์ภาพที่แปลง, ขนาดไฟล์'
+        verbose_name='Details',
+        help_text='ข้อมูลเพิ่มเติม'
     )
     
     class Meta:
         ordering = ['-timestamp']
-        verbose_name = 'บันทึกการใช้งาน'
-        verbose_name_plural = 'บันทึกการใช้งาน'
+        verbose_name = 'Activity Log'
+        verbose_name_plural = 'Activity Logs'
         indexes = [
             models.Index(fields=['user', '-timestamp']),
             models.Index(fields=['action', '-timestamp']),
@@ -477,43 +469,3 @@ class UserActivityLog(models.Model):
             return "แท็บเล็ต"
         else:
             return "คอมพิวเตอร์"
-
-
-class SystemLog(models.Model):
-    """บันทึกการทำงานของระบบโดยรวม"""
-    
-    LOG_LEVELS = [
-        ('info', 'ข้อมูล'),
-        ('warning', 'คำเตือน'),
-        ('error', 'ข้อผิดพลาด'),
-        ('critical', 'ร้ายแรง'),
-    ]
-    
-    level = models.CharField(
-        max_length=10,
-        choices=LOG_LEVELS,
-        default='info',
-        verbose_name='ระดับ'
-    )
-    message = models.TextField(
-        verbose_name='ข้อความ'
-    )
-    timestamp = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='เวลา'
-    )
-    user = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name='ผู้ใช้ที่เกี่ยวข้อง'
-    )
-    
-    class Meta:
-        ordering = ['-timestamp']
-        verbose_name = 'บันทึกระบบ'
-        verbose_name_plural = 'บันทึกระบบ'
-    
-    def __str__(self):
-        return f"[{self.get_level_display()}] {self.message[:50]}... - {self.timestamp.strftime('%d/%m/%Y %H:%M')}"

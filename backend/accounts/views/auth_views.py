@@ -176,3 +176,56 @@ def jwt_logout_view(request):
     return Response({
         'message': 'Logout logged successfully'
     }, status=status.HTTP_200_OK)
+
+# =============================================================================
+# EMAIL & USERNAME AVAILABILITY CHECK
+# =============================================================================
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def check_email_availability(request):
+    """
+    API สำหรับตรวจสอบว่าอีเมลมีผู้ใช้แล้วหรือไม่
+    GET /api/accounts/check-email/?email=test@example.com
+    """
+    email = request.query_params.get('email', '').strip()
+    
+    if not email:
+        return Response({
+            'available': False, 
+            'error': 'กรุณาระบุอีเมล'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # ถ้าเป็น user ที่ login แล้ว ให้ exclude ตัวเอง
+    if request.user.is_authenticated:
+        exists = User.objects.filter(email=email).exclude(id=request.user.id).exists()
+    else:
+        exists = User.objects.filter(email=email).exists()
+    
+    return Response({
+        'available': not exists,
+        'email': email
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def check_username_availability(request):
+    """
+    API สำหรับตรวจสอบว่า username มีผู้ใช้แล้วหรือไม่
+    GET /api/accounts/check-username/?username=testuser
+    """
+    username = request.query_params.get('username', '').strip()
+    
+    if not username:
+        return Response({
+            'available': False,
+            'error': 'กรุณาระบุ username'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    exists = User.objects.filter(username=username).exists()
+    
+    return Response({
+        'available': not exists,
+        'username': username
+    }, status=status.HTTP_200_OK)

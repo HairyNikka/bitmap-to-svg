@@ -6,7 +6,7 @@ User Profile Management
 """
 
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
@@ -72,8 +72,8 @@ def update_profile(request):
                 return Response({'error': 'รหัสผ่านปัจจุบันไม่ถูกต้อง'}, status=status.HTTP_401_UNAUTHORIZED)
             
             # ตรวจสอบความยาวรหัสผ่านใหม่
-            if len(new_password) < 6:
-                return Response({'error': 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร'}, status=status.HTTP_400_BAD_REQUEST)
+            if len(new_password) < 8:
+                return Response({'error': 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร'}, status=status.HTTP_400_BAD_REQUEST)
             
             user.set_password(new_password)
             changes_made.append({
@@ -240,3 +240,4 @@ def admin_promote_user(request, user_id):
         
     except User.DoesNotExist:
         return Response({'error': 'ไม่พบผู้ใช้'}, status=status.HTTP_404_NOT_FOUND)
+    

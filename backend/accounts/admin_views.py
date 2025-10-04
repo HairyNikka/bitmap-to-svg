@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
-from .models import User, UserActivityLog, SystemLog
+from .models import User, UserActivityLog
 from .serializers import UserSerializer, UserActivityLogSerializer
 from django.contrib.auth import get_user_model
 

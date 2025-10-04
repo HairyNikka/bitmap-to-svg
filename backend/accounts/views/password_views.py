@@ -181,9 +181,9 @@ def reset_password(request):
             'error': 'รหัสผ่านไม่ตรงกัน'
         }, status=status.HTTP_400_BAD_REQUEST)
     
-    if len(new_password) < 6:
+    if len(new_password) < 8:
         return Response({
-            'error': 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'
+            'error': 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร'
         }, status=status.HTTP_400_BAD_REQUEST)
     
     # ตรวจสอบ reset token
@@ -317,8 +317,8 @@ def admin_change_password(request, user_id):
     if new_password != confirm_password:
         return Response({'error': 'รหัสผ่านไม่ตรงกัน'}, status=status.HTTP_400_BAD_REQUEST)
     
-    if len(new_password) < 6:
-        return Response({'error': 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'}, status=status.HTTP_400_BAD_REQUEST)
+    if len(new_password) < 8:
+        return Response({'error': 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร'}, status=status.HTTP_400_BAD_REQUEST)
     
     try:
         user = User.objects.get(id=user_id)
@@ -414,3 +414,4 @@ def update_user_security_questions(request, user_id):
         
     except User.DoesNotExist:
         return Response({'error': 'ไม่พบผู้ใช้'}, status=status.HTTP_404_NOT_FOUND)
+    

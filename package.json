@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"npm run dev-django\"",
+    "dev": "concurrently \"vite --host 0.0.0.0\" \"npm run dev-django\"",
     "dev-django": ".\\env\\Scripts\\python.exe backend\\manage.py runserver",
-    "dev-react": "vite",
+    "dev-react": "vite --host 0.0.0.0",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

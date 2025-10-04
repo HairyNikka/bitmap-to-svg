@@ -11,6 +11,7 @@ from .views import (
     # Authentication Views
     RegisterView, UserView, login_view, logout_view, 
     CustomTokenObtainPairView, jwt_logout_view,
+    check_email_availability, check_username_availability,
     
     # Password & Security Views
     forgot_password, verify_security_answers, reset_password, get_security_questions,
@@ -47,6 +48,10 @@ urlpatterns = [
     # PROFILE MANAGEMENT
     # =========================================================================
     path('profile/', update_profile, name='update_profile'),
+    
+    # Availability Checks
+    path('check-email/', check_email_availability, name='check_email_availability'),
+    path('check-username/', check_username_availability, name='check_username_availability'),
     
     # =========================================================================
     # PASSWORD RESET WITH SECURITY QUESTIONS

@@ -65,8 +65,8 @@ const ResetPassword = ({ resetData, onBack }) => {
       return false;
     }
 
-    if (formData.newPassword.length < 6) {
-      setError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+    if (formData.newPassword.length < 8) {
+      setError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
       return false;
     }
 
@@ -143,7 +143,7 @@ const ResetPassword = ({ resetData, onBack }) => {
 
   const isFormValid = formData.newPassword && formData.confirmPassword && 
                      formData.newPassword === formData.confirmPassword &&
-                     formData.newPassword.length >= 6;
+                     formData.newPassword.length >= 8;
 
   return (
     <div style={styles.container}>
@@ -183,7 +183,7 @@ const ResetPassword = ({ resetData, onBack }) => {
                               formData.newPassword && formData.newPassword.length < 6 ? '#f59e0b' : '#3a3a3a'
                 }}
                 disabled={loading}
-                minLength="6"
+                minLength="8"
               />
               <button
                 type="button"
@@ -202,7 +202,7 @@ const ResetPassword = ({ resetData, onBack }) => {
             {formData.newPassword && formData.newPassword.length < 6 && (
               <div style={styles.simpleWarning}>
                 <FontAwesomeIcon icon={faExclamation} style={styles.warningIcon} />
-                รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร (ปัจจุบัน: {formData.newPassword.length})
+                รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร (ปัจจุบัน: {formData.newPassword.length})
               </div>
             )}
           </div>
@@ -278,7 +278,7 @@ const ResetPassword = ({ resetData, onBack }) => {
             <FontAwesomeIcon icon={faCheck} style={styles.tipsIcon} />
             <div style={styles.tipsText}>
               <strong>ข้อกำหนดรหัสผ่าน:</strong><br />
-              • อย่างน้อย 6 ตัวอักษร (แนะนำ 8 ตัวขึ้นไป)<br />
+              • อย่างน้อย 8 ตัวอักษร (แนะนำ 8 ตัวขึ้นไป)<br />
               • หลีกเลี่ยงข้อมูลส่วนตัวที่เดาได้ง่าย
             </div>
           </div>
