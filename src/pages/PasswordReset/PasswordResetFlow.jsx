@@ -129,7 +129,7 @@ const PasswordResetFlow = () => {
       {flowData.username && (
         <div style={styles.userInfoContainer}>
           <div style={styles.userInfo}>
-            👤 <strong>{flowData.username}</strong>
+            <strong>{flowData.username}</strong>
           </div>
         </div>
       )}

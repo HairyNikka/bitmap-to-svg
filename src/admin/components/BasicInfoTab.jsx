@@ -1,5 +1,5 @@
-// src/admin/components/modals/EditUserModal/BasicInfoTab.jsx - Improved version
-import React, { useState, useCallback, useMemo } from 'react';
+// src/admin/components/modals/EditUserModal/BasicInfoTab.jsx
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faCheck, 
@@ -30,6 +30,10 @@ export default function BasicInfoTab({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingChanges, setPendingChanges] = useState({});
 
+  // state สำหรับเช็คอีเมล
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false);
+  const [emailCheckResult, setEmailCheckResult] = useState(null);
+
   // Email validation regex
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -45,9 +49,98 @@ export default function BasicInfoTab({
       hasChanges: email !== user.email || user_type !== user.user_type || basicData.is_active !== user.is_active,
       canChangeUserType: currentUser?.user_type === 'superuser',
       canChangeStatus: user.id !== currentUser?.id,
-      isFormValid: emailRegex.test(email) && email.length > 0
+      isEmailAvailable: emailCheckResult?.available !== false, // ถ้ายังไม่เช็ค หรือ available = true
+      isFormValid: emailRegex.test(email) && 
+                   email.length > 0 && 
+                  (emailCheckResult?.available !== false)
     };
-  }, [basicData, user, currentUser]);
+  }, [basicData, user, currentUser, emailCheckResult]);
+
+  // ✅ แก้ไข function เช็คอีเมลซ้ำ
+  const checkEmailAvailability = useCallback(async (email) => {
+    
+    // ถ้าอีเมลเดิม ไม่ต้องเช็ค
+    if (email === user.email) {
+      setEmailCheckResult(null);
+      return;
+    }
+
+    // ถ้าอีเมลไม่ valid ไม่ต้องเช็ค
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; 
+    if (!emailRegex.test(email)) {
+      setEmailCheckResult(null);
+      return;
+    }
+
+    setEmailCheckLoading(true);
+    
+    try {
+      const apiUrl = `http://localhost:8000/api/accounts/check-email/?email=${encodeURIComponent(email)}`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Response is not JSON');
+      }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.available) {
+        setEmailCheckResult({ 
+          available: true, 
+          message: 'อีเมลนี้ใช้งานได้' 
+        });
+      } else {
+        setEmailCheckResult({ 
+          available: false, 
+          message: 'อีเมลนี้มีผู้ใช้งานแล้ว' 
+        });
+      }
+    } catch (error) {
+      console.error('Error checking email:', error);
+      setEmailCheckResult({ 
+        available: true,
+        message: 'ไม่สามารถตรวจสอบอีเมลได้ (จะตรวจสอบอีกครั้งเมื่อบันทึก)',
+        warning: true
+      });
+    } finally {
+      setEmailCheckLoading(false);
+    }
+  }, []); 
+
+  // Debounce สำหรับเช็คอีเมล
+  useEffect(() => {
+    // Reset ผลลัพธ์เดิมเมื่อเริ่มพิมพ์ใหม่
+    setEmailCheckResult(null);
+    
+    // ถ้าอีเมลเป็นค่าเดิม ไม่ต้องเช็ค
+    if (basicData.email === user.email) {
+      return;
+    }
+    
+    // ถ้าอีเมลว่างหรือไม่ valid ไม่ต้องเช็ค
+    if (!basicData.email || !validation.isEmailValid) {
+      return;
+    }
+    
+    // รอ 1 วินาที หลังพิมพ์หยุด แล้วค่อยเช็ค
+    const timer = setTimeout(() => {
+      checkEmailAvailability(basicData.email);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [basicData.email, user.email, validation.isEmailValid]); // ✅ ลบ checkEmailAvailability ออก
 
   // Debounced input handlers
   const handleBasicDataChange = useCallback((field, value) => {
@@ -444,6 +537,29 @@ export default function BasicInfoTab({
           required
         />
         
+          {/* ส่วนแสดงผลการเช็คอีเมล */}
+          {basicData.email && validation.isEmailValid && validation.isEmailChanged && (
+            <div style={styles.validationList}>
+              {emailCheckLoading ? (
+                <div style={{...styles.validationItem, color: '#6c757d'}}>
+                  <FontAwesomeIcon icon={faSpinner} spin size="sm" />
+                  กำลังตรวจสอบอีเมล...
+                </div>
+              ) : emailCheckResult ? (
+                <div style={{
+                  ...styles.validationItem,
+                  ...(emailCheckResult.available ? styles.validationItemValid : styles.validationItemError)
+                }}>
+                  <FontAwesomeIcon 
+                    icon={emailCheckResult.available ? faCheck : faExclamationTriangle} 
+                    size="sm" 
+                  />
+                  {emailCheckResult.message}
+                </div>
+              ) : null}
+            </div>
+          )}
+
         {basicData.email && !validation.isEmailValid && (
           <div style={styles.validationList}>
             <div style={{...styles.validationItem, ...styles.validationItemError}}>

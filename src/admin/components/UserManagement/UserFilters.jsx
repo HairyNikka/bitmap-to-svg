@@ -122,7 +122,7 @@ const UserFilters = ({
 
         {/* User Type Filter */}
         <div style={styles.filterGroup}>
-          <label style={styles.label}>ประเภทผู้ใช้</label>
+          <label style={styles.label}>ตำแหน่ง</label>
           <select
             value={userTypeFilter}
             onChange={(e) => onFilterChange('userTypeFilter', e.target.value)}

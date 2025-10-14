@@ -439,19 +439,43 @@ class UserActivityLogAdmin(admin.ModelAdmin):
         return super().changelist_view(request, extra_context)
 
 
+class GuestExportUsageFilter(admin.SimpleListFilter):
+    """Filter for guest export usage"""
+    title = 'Export Usage'
+    parameter_name = 'guest_usage'
+    
+    def lookups(self, request, model_admin):
+        return (
+            ('full', 'Full Quota (3/3)'),
+            ('high', 'High Usage (2/3)'),
+            ('low', 'Low Usage (1/3)'),
+            ('unused', 'Unused (0/3)'),
+        )
+    
+    def queryset(self, request, queryset):
+        if self.value() == 'full':
+            return queryset.filter(daily_exports_used__gte=3)
+        elif self.value() == 'high':
+            return queryset.filter(daily_exports_used=2)
+        elif self.value() == 'low':
+            return queryset.filter(daily_exports_used=1)
+        elif self.value() == 'unused':
+            return queryset.filter(daily_exports_used=0)
+        return queryset
+
 @admin.register(GuestSession)
 class GuestSessionAdmin(admin.ModelAdmin):
     """Guest Session Management"""
     
     list_display = [
-        'guest_id_short', 'ip_address', 'export_usage_display', 
-        'last_export_date', 'last_activity_formatted', 'created_at_formatted'
+        'guest_id_short', 'ip_address', 'device_info', 'export_usage_display', 
+        'last_export_date', 'created_at_formatted'
     ]
     
-    list_filter = ['last_export_date', 'created_at', 'last_activity']
+    list_filter = [GuestExportUsageFilter, 'last_export_date', 'created_at']
     search_fields = ['guest_id', 'ip_address']
-    readonly_fields = ['guest_id', 'ip_address', 'created_at', 'last_activity', 'user_agent']
-    ordering = ['-last_activity']
+    readonly_fields = ['guest_id', 'ip_address', 'created_at', 'user_agent']
+    ordering = ['-last_export_date']
     date_hierarchy = 'created_at'
     
     actions = ['delete_old_sessions', 'reset_guest_limits']
@@ -481,16 +505,6 @@ class GuestSessionAdmin(admin.ModelAdmin):
             return f"{obj.daily_exports_used}/{obj.GUEST_DAILY_LIMIT} ({percentage:.0f}%)"
     export_usage_display.short_description = 'Export Usage'
     
-    def last_activity_formatted(self, obj):
-        """Format last activity date"""
-        if not obj.last_activity:
-            return '-'
-        from zoneinfo import ZoneInfo
-        bangkok_tz = ZoneInfo("Asia/Bangkok")
-        local_time = obj.last_activity.astimezone(bangkok_tz)
-        return local_time.strftime('%Y-%m-%d %H:%M')
-    last_activity_formatted.short_description = 'Last Activity'
-    
     def created_at_formatted(self, obj):
         """Format creation date"""
         from zoneinfo import ZoneInfo
@@ -501,9 +515,9 @@ class GuestSessionAdmin(admin.ModelAdmin):
     
     # Custom actions
     def delete_old_sessions(self, request, queryset):
-        """Delete guest sessions inactive for more than 7 days"""
-        cutoff_date = timezone.now() - timedelta(days=7)
-        old_sessions = queryset.filter(last_activity__lt=cutoff_date)
+        """Delete guest sessions that haven't exported for more than 7 days"""
+        cutoff_date = timezone.now().date() - timedelta(days=7)
+        old_sessions = queryset.filter(last_export_date__lt=cutoff_date)
         count = old_sessions.count()
         old_sessions.delete()
         
@@ -521,6 +535,49 @@ class GuestSessionAdmin(admin.ModelAdmin):
         self.message_user(request, f'Reset export limits for {count} guest sessions')
     reset_guest_limits.short_description = "Reset Guest Export Limits"
 
+    def changelist_view(self, request, extra_context=None):
+        """Add summary statistics for guest sessions"""
+        extra_context = extra_context or {}
+        
+        from django.db.models import Count, Q
+        
+        # สถิติ Guest
+        total_guests = GuestSession.objects.count()
+        active_today = GuestSession.objects.filter(
+        last_export_date=timezone.now().date() 
+        ).count()
+        
+        full_quota = GuestSession.objects.filter(
+            daily_exports_used__gte=GuestSession.GUEST_DAILY_LIMIT
+        ).count()
+        
+        # Guest ที่ต้อง cleanup (เก่ากว่า 7 วัน)
+        needs_cleanup = GuestSession.objects.filter(
+            last_export_date__lt=timezone.now().date() - timedelta(days=7) 
+        ).count()
+        
+        extra_context['guest_stats'] = {
+            'total_guests': total_guests,
+            'active_today': active_today,
+            'full_quota': full_quota,
+            'needs_cleanup': needs_cleanup,
+        }
+        
+        return super().changelist_view(request, extra_context)
+    
+    def device_info(self, obj):
+        """Extract device info from user agent"""
+        if not obj.user_agent:
+            return "Unknown"
+        
+        ua = obj.user_agent.lower()
+        if 'mobile' in ua or 'android' in ua or 'iphone' in ua:
+            return "Mobile"
+        elif 'tablet' in ua or 'ipad' in ua:
+            return "Tablet"
+        else:
+            return "Desktop"
+    device_info.short_description = 'Device'
 
 # Customize admin site
 admin.site.site_header = "Bitmap to Vector - Administration"

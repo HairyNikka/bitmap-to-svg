@@ -7,10 +7,10 @@ import Home from './components/Home';
 import Navbar from './components/Navbar';
 
 // 🔐 เพิ่ม Security Reset Components
-import ForgotPassword from './pages/ForgotPassword';
-import SecurityQuestions from './pages/SecurityQuestions';
-import ResetPassword from './pages/ResetPassword';
-import PasswordResetFlow from './pages/PasswordResetFlow'; // Wrapper component
+import ForgotPassword from './pages/PasswordReset/ForgotPassword';
+import SecurityQuestions from './pages/PasswordReset/SecurityQuestions';
+import ResetPassword from './pages/PasswordReset/ResetPassword';
+import PasswordResetFlow from './pages/PasswordReset/PasswordResetFlow'; 
 
 // 🔧 เพิ่ม Admin Components
 import AdminDashboard from './admin/pages/AdminDashboard';

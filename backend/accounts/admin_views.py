@@ -161,11 +161,25 @@ def admin_users_list(request):
     for user in users_page:
         last_activity = UserActivityLog.objects.filter(user=user).first()
         user_data = UserSerializer(user).data
+
+        # ข้อมูล last activity
         user_data['last_activity'] = {
             'action': last_activity.get_action_display() if last_activity else None,
             'timestamp': last_activity.timestamp if last_activity else None,
         }
-        user_data['total_activities'] = UserActivityLog.objects.filter(user=user).count()
+        # สถิติการใช้งาน
+        user_data['stats'] = {
+        'total_conversions': user.total_conversions,  # จำนวนการแปลงทั้งหมด
+        'total_exports': user.total_exports,  # จำนวนการส่งออกทั้งหมด
+        'total_activities': UserActivityLog.objects.filter(user=user).count(),
+        }
+        # ข้อมูลโควต้า
+        user_data['quota'] = {
+        'daily_export_limit': user.daily_export_limit,  # โควต้าต่อวัน
+        'daily_exports_used': user.daily_exports_used,  # ใช้ไปแล้ววันนี้
+        'remaining_today': user.get_remaining_exports_today(),  # เหลืออีกกี่ครั้งวันนี้
+        }
+    
         users_data.append(user_data)
     
     return Response({
@@ -217,7 +231,17 @@ def admin_user_detail(request, user_id):
         # เฉพาะ superuser ถึงจะแก้ไข user_type ได้
         if request.user.user_type == 'superuser':
             allowed_fields.append('user_type')
-        
+            
+        # ตรวจสอบอีเมลซ้ำก่อน
+        if 'email' in request.data:
+            new_email = request.data['email'].strip()
+            if new_email != user.email:  # ถ้าเปลี่ยนอีเมลจริงๆ
+                # เช็คว่าอีเมลใหม่มีคนใช้แล้วหรือไม่ (ยกเว้นตัวเอง)
+                if User.objects.filter(email=new_email).exclude(id=user.id).exists():
+                    return Response({
+                        'error': 'อีเมลนี้มีผู้ใช้งานแล้ว กรุณาใช้อีเมลอื่น'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
         changes_made = []  # เก็บรายการการเปลี่ยนแปลง
         updated_data = {}
         

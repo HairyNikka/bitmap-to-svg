@@ -13,7 +13,7 @@ import {
   faShield,
   faImage
 } from '@fortawesome/free-solid-svg-icons';
-import SecurityQuestionsSetup from '../pages/SecurityQuestionsSetup';
+import SecurityQuestionsSetup from './SecurityQuestionsSetup';
 
 export default function Register() {
   // Basic form states

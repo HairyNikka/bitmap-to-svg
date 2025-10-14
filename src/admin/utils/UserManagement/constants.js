@@ -3,7 +3,7 @@ import { faUser, faUserShield, faUserTie } from '@fortawesome/free-solid-svg-ico
 
 // User type options for filters
 export const userTypeOptions = [
-  { value: '', label: 'ทุกประเภท' },
+  { value: '', label: 'ทุกตำแหน่ง' },
   { value: 'user', label: 'User' },
   { value: 'admin', label: 'Admin' },
   { value: 'superuser', label: 'Super User' }

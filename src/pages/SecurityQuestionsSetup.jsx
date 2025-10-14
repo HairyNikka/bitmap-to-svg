@@ -143,9 +143,9 @@ const SecurityQuestionsSetup = ({ onComplete }) => {
     if (Object.keys(allErrors).length === 0) {
       onComplete({
         security_question_1: formData.question1,
-        security_answer_1: formData.answer1.trim(),
+        security_answer_1: formData.answer1.trim().toLowerCase(),
         security_question_2: formData.question2,
-        security_answer_2: formData.answer2.trim()
+        security_answer_2: formData.answer2.trim().toLowerCase()
       });
     }
   };

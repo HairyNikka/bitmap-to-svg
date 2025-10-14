@@ -26,8 +26,6 @@ const SecurityQuestions = ({ userData, onAnswersVerified, onBack }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [attempts, setAttempts] = useState(0);
-  const maxAttempts = 3;
 
   const handleChange = (field, value) => {
     setAnswers(prev => ({
@@ -72,19 +70,14 @@ const SecurityQuestions = ({ userData, onAnswersVerified, onBack }) => {
     
     if (!validateForm()) return;
 
-    if (attempts >= maxAttempts) {
-      setError('คุณตอบผิดเกินจำนวนครั้งที่กำหนด กรุณาติดต่อ Superuser');
-      return;
-    }
-
     setLoading(true);
     setError('');
     setSuccess('');
 
     const payload = {
       user_id: userData.user_id,
-      answer_1: answers.answer_1.trim(),
-      answer_2: answers.answer_2.trim()
+      answer_1: answers.answer_1.trim().toLowerCase(),
+      answer_2: answers.answer_2.trim().toLowerCase()
     };
     
     console.log('=== DEBUG FRONTEND ===');
@@ -118,15 +111,8 @@ const SecurityQuestions = ({ userData, onAnswersVerified, onBack }) => {
     } catch (error) {
       console.error('Security answers verification error:', error);
       
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
-
       if (error.response?.data?.error) {
-        if (newAttempts >= maxAttempts) {
-          setError(`คำตอบไม่ถูกต้อง (${newAttempts}/${maxAttempts}) - กรุณาติดต่อ Superuser`);
-        } else {
-          setError(`คำตอบไม่ถูกต้อง (${newAttempts}/${maxAttempts}) - กรุณาลองใหม่อีกครั้ง`);
-        }
+        setError('คำตอบไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
       } else {
         setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
       }
@@ -136,8 +122,6 @@ const SecurityQuestions = ({ userData, onAnswersVerified, onBack }) => {
   };
 
   const isFormValid = answers.answer_1.trim() && answers.answer_2.trim();
-  const attemptsRemaining = maxAttempts - attempts;
-  const isBlocked = attempts >= maxAttempts;
 
   return (
     <div style={styles.container}>
@@ -156,22 +140,6 @@ const SecurityQuestions = ({ userData, onAnswersVerified, onBack }) => {
           <FontAwesomeIcon icon={faUser} style={styles.userIcon} />
           <span style={styles.username}>{userData.username}</span>
         </div>
-
-        {/* Attempts Info */}
-        {attempts > 0 && !isBlocked && (
-          <div style={styles.attemptsInfo}>
-            <FontAwesomeIcon icon={faExclamation} style={styles.warningIcon} />
-            <span>เหลือโอกาสในการตอบ: {attemptsRemaining} ครั้ง</span>
-          </div>
-        )}
-
-        {/* Blocked Warning */}
-        {isBlocked && (
-          <div style={styles.blockedWarning}>
-            <FontAwesomeIcon icon={faExclamation} style={styles.errorIcon} />
-            <span>คุณตอบผิดเกินจำนวนครั้งที่กำหนด</span>
-          </div>
-        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={styles.form}>
@@ -194,13 +162,13 @@ const SecurityQuestions = ({ userData, onAnswersVerified, onBack }) => {
                   ...styles.input,
                   borderColor: error && !answers.answer_1.trim() ? '#ef4444' : '#3a3a3a'
                 }}
-                disabled={loading || isBlocked}
+                disabled={loading}
               />
               <button
                 type="button"
                 onClick={() => toggleShowAnswer('answer_1')}
                 style={styles.eyeButton}
-                disabled={loading || isBlocked}
+                disabled={loading}
               >
                 <FontAwesomeIcon 
                   icon={showAnswers.answer_1 ? faEyeSlash : faEye} 
@@ -229,13 +197,13 @@ const SecurityQuestions = ({ userData, onAnswersVerified, onBack }) => {
                   ...styles.input,
                   borderColor: error && !answers.answer_2.trim() ? '#ef4444' : '#3a3a3a'
                 }}
-                disabled={loading || isBlocked}
+                disabled={loading}
               />
               <button
                 type="button"
                 onClick={() => toggleShowAnswer('answer_2')}
                 style={styles.eyeButton}
-                disabled={loading || isBlocked}
+                disabled={loading}
               >
                 <FontAwesomeIcon 
                   icon={showAnswers.answer_2 ? faEyeSlash : faEye} 
@@ -284,10 +252,10 @@ const SecurityQuestions = ({ userData, onAnswersVerified, onBack }) => {
 
             <button
               type="submit"
-              disabled={loading || !isFormValid || isBlocked}
+              disabled={loading || !isFormValid}
               style={{
                 ...styles.submitButton,
-                ...(loading || !isFormValid || isBlocked ? styles.submitButtonDisabled : {})
+                ...(loading || !isFormValid ? styles.submitButtonDisabled : {})
               }}
             >
               {loading ? (

@@ -122,9 +122,9 @@ def cleanup_old_guest_sessions():
     """
     from datetime import timedelta
     
-    cutoff_date = timezone.now() - timedelta(days=7)
+    cutoff_date = timezone.now().date() - timedelta(days=7)
     deleted_count = GuestSession.objects.filter(
-        last_activity__lt=cutoff_date
+       last_export_date__lt=cutoff_date 
     ).delete()[0]
     
     return deleted_count

@@ -1,7 +1,15 @@
 // admin/components/UserManagement/UserTable.jsx
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash, faFileExport } from '@fortawesome/free-solid-svg-icons';
+import { 
+  faEdit, 
+  faTrash, 
+  faFileExport,
+  faExchangeAlt,    
+  faDownload,     
+  faChartBar,       
+  faInfinity        
+} from '@fortawesome/free-solid-svg-icons';
 import { 
   getUserBadgeWithRoleStyle,
   getStatusBadgeStyle,
@@ -14,6 +22,7 @@ import {
   canDeleteUser,
   canExportUserActivity
 } from '../../utils/UserManagement';
+import { getUserTypeStyle } from '../../utils/UserManagement';
 
 const UserTable = ({ 
   users, 
@@ -48,12 +57,13 @@ const UserTable = ({
       borderBottom: '1px solid #4a4a4a',
       fontSize: '14px'
     },
-    // Column specific widths
-    userColumn: { width: '25%' },
-    emailColumn: { width: '25%' },
-    statusColumn: { width: '15%' },
-    dateColumn: { width: '15%' },
-    activityColumn: { width: '15%' },
+  
+    userColumn: { width: '20%' },
+    emailColumn: { width: '18%' },
+    statsColumn: { width: '12%' },  
+    statusColumn: { width: '10%' },
+    dateColumn: { width: '12%' },
+    activityColumn: { width: '13%' },
     actionsColumn: { width: '15%' },
     tbody: {
       backgroundColor: '#2a2a2a'
@@ -90,6 +100,63 @@ const UserTable = ({
       gap: '8px',
       alignItems: 'center'
     },
+    statsCell: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '6px',
+      fontSize: '12px'
+    },
+    statRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      color: '#e0e0e0'
+    },
+    statIcon: {
+      width: '14px',
+      color: '#6b7280'
+    },
+    statIconConversion: {
+      color: '#3b82f6'  
+    },
+    statIconExport: {
+      color: '#10b981'  
+    },
+    statValue: {
+      fontWeight: '500',
+      color: '#ffffff'
+    },
+    quotaBadge: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+      border: '1px solid rgba(59, 130, 246, 0.3)',
+      borderRadius: '4px',
+      padding: '2px 6px',
+      fontSize: '10px',
+      color: '#93c5fd',
+      marginLeft: '8px',
+      fontWeight: '500'
+    },
+    quotaBadgeUnlimited: {
+      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+      border: '1px solid rgba(16, 185, 129, 0.3)',
+      color: '#6ee7b7'
+    },
+    quotaBadgeWarning: {
+      backgroundColor: 'rgba(251, 191, 36, 0.1)',
+      border: '1px solid rgba(251, 191, 36, 0.3)',
+      color: '#fbbf24'
+    },
+    quotaBadgeDanger: {
+      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+      border: '1px solid rgba(239, 68, 68, 0.3)',
+      color: '#f87171'
+    },
+    quotaIcon: {
+      fontSize: '9px'
+    },
     emptyState: {
       textAlign: 'center',
       padding: '60px 20px',
@@ -122,6 +189,42 @@ const UserTable = ({
       color: '#a0a0a0',
       fontSize: '14px'
     }
+  };
+
+  // ฟังก์ชันสำหรับแสดงโควต้า
+  const renderQuotaBadge = (user) => {
+    // ถ้าไม่มีข้อมูล quota ไม่แสดง
+    if (!user.quota) return null;
+
+    const { daily_export_limit, daily_exports_used, remaining_today } = user.quota;
+
+    // Admin/Superuser = Unlimited
+    if (user.user_type === 'admin' || user.user_type === 'superuser') {
+      return (
+        <span style={{...styles.quotaBadge, ...styles.quotaBadgeUnlimited}}>
+          <FontAwesomeIcon icon={faInfinity} style={styles.quotaIcon} />
+          ไม่จำกัด
+        </span>
+      );
+    }
+
+    // คำนวณเปอร์เซ็นต์ที่ใช้ไป
+    const usagePercent = (daily_exports_used / daily_export_limit) * 100;
+
+    // เลือกสีตามการใช้งาน
+    let badgeStyle = styles.quotaBadge;
+    if (usagePercent >= 80) {
+      badgeStyle = {...styles.quotaBadge, ...styles.quotaBadgeDanger};  // แดง: ใช้ >= 80%
+    } else if (usagePercent >= 50) {
+      badgeStyle = {...styles.quotaBadge, ...styles.quotaBadgeWarning}; // เหลือง: ใช้ >= 50%
+    }
+
+    return (
+      <span style={badgeStyle}>
+        <FontAwesomeIcon icon={faChartBar} style={styles.quotaIcon} />
+        {daily_exports_used}/{daily_export_limit}
+      </span>
+    );
   };
 
   // Loading state
@@ -203,6 +306,7 @@ const UserTable = ({
             <tr>
               <th style={{...styles.th, ...styles.userColumn}}>ผู้ใช้</th>
               <th style={{...styles.th, ...styles.emailColumn}}>อีเมล</th>
+              <th style={{...styles.th, ...styles.statsColumn}}>สถิติ</th>
               <th style={{...styles.th, ...styles.statusColumn}}>สถานะ</th>
               <th style={{...styles.th, ...styles.dateColumn}}>วันที่สมัคร</th>
               <th style={{...styles.th, ...styles.activityColumn}}>กิจกรรมล่าสุด</th>
@@ -226,18 +330,22 @@ const UserTable = ({
                     animation: `fadeIn 0.3s ease-in-out ${index * 0.05}s both`
                   }}
                 >
-                  {/* User Column - รวม username + user type เหมือน ActivityLogs */}
+                  {/* User Column - รวม username + quota */}
                   <td style={styles.td}>
                     <div style={userBadgeStyles.container}>
-                      <div style={userBadgeStyles.userBadge}>
-                        <FontAwesomeIcon 
-                          icon={getUserTypeStyle(user.user_type).icon} 
-                          size="sm"
-                        />
-                        <span>{user.username}</span>
-                        {newUserBadge && (
-                          <span style={newUserBadge}>ใหม่</span>
-                        )}
+                      <div style={{display: 'flex', alignItems: 'center', flexWrap: 'wrap'}}>
+                        <div style={userBadgeStyles.userBadge}>
+                          <FontAwesomeIcon 
+                            icon={getUserTypeStyle(user.user_type).icon} 
+                            size="sm"
+                          />
+                          <span>{user.username}</span>
+                          {newUserBadge && (
+                            <span style={newUserBadge}>ใหม่</span>
+                          )}
+                        </div>
+                        {/* แสดงโควต้าข้าง username */}
+                        {renderQuotaBadge(user)}
                       </div>
                       <div style={userBadgeStyles.roleText}>
                         {getUserTypeStyle(user.user_type).displayName}
@@ -249,6 +357,34 @@ const UserTable = ({
                   <td style={styles.td}>
                     <div style={styles.emailCell}>
                       {user.email}
+                    </div>
+                  </td>
+
+                  {/* Stats Column - Conversions & Exports */}
+                  <td style={styles.td}>
+                    <div style={styles.statsCell}>
+                      {/* Conversions */}
+                      <div style={styles.statRow}>
+                        <FontAwesomeIcon 
+                          icon={faExchangeAlt} 
+                          style={{...styles.statIcon, ...styles.statIconConversion}}
+                        />
+                        <span style={styles.statValue}>
+                          {user.stats?.total_conversions || 0}
+                        </span>
+                        <span style={{color: '#6b7280'}}>แปลง</span>
+                      </div>
+                      {/* Exports */}
+                      <div style={styles.statRow}>
+                        <FontAwesomeIcon 
+                          icon={faDownload} 
+                          style={{...styles.statIcon, ...styles.statIconExport}}
+                        />
+                        <span style={styles.statValue}>
+                          {user.stats?.total_exports || 0}
+                        </span>
+                        <span style={{color: '#6b7280'}}>ส่งออก</span>
+                      </div>
                     </div>
                   </td>
 
@@ -316,7 +452,7 @@ const UserTable = ({
                             size="sm" 
                             spin={isExporting}
                           />
-                          {isExporting ? 'กำลังส่งออก CSV..' : 'Export CSV'}
+                          {isExporting ? 'กำลังส่งออก..' : 'Export CSV'}
                         </button>
                       )}
                     </div>
@@ -341,8 +477,5 @@ const UserTable = ({
     </>
   );
 };
-
-// Import getUserTypeStyle function เพิ่มเติม
-import { getUserTypeStyle } from '../../utils/UserManagement';
 
 export default UserTable;

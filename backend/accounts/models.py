@@ -107,29 +107,20 @@ class User(AbstractUser):
             
         super().save(*args, **kwargs)
 
-    # 🔄 Export-related methods (ใหม่)
+    # Export-related methods
     def reset_daily_exports_if_new_day(self):
-        """Reset การนับการส่งออกรายวันถ้าเป็นวันใหม่"""
         
-        # ✅ ใช้ zoneinfo สำหรับ Python 3.11
+        """Reset การนับการส่งออกรายวันถ้าเป็นวันใหม่"""
         from zoneinfo import ZoneInfo
         bangkok_tz = ZoneInfo("Asia/Bangkok")
         bangkok_time = timezone.now().astimezone(bangkok_tz)
         today = bangkok_time.date()
         
         if self.last_export_date != today:
-            print(f"RESET! Different date detected")
-            old_used = self.daily_exports_used
             self.daily_exports_used = 0
             self.last_export_date = today
             self.save()
-            print(f"   Reset exports: {old_used} -> 0")
-        else:
-            print(f"No reset - same date")
-        
-        print(f"   Final exports used: {self.daily_exports_used}")
-        print("=" * 50)
-    
+
     def can_export_today(self):
         """ตรวจสอบว่าสามารถส่งออกไฟล์ได้อีกหรือไม่"""
         self.reset_daily_exports_if_new_day()
@@ -247,22 +238,18 @@ class GuestSession(models.Model):
     daily_exports_used = models.IntegerField(
         default=0,
         validators=[MinValueValidator(0)],
-        verbose_name='จำนวนการส่งออกที่ใช้วันนี้'
+        verbose_name='Exports Used Today'
     )
     last_export_date = models.DateField(
         null=True,
         blank=True,
-        verbose_name='วันที่ส่งออกครั้งล่าสุด'
+        verbose_name='Last Export Date'
     )
     
     # Metadata
     created_at = models.DateTimeField(
         auto_now_add=True,
-        verbose_name='วันที่สร้าง session'
-    )
-    last_activity = models.DateTimeField(
-        auto_now=True,
-        verbose_name='กิจกรรมล่าสุด'
+        verbose_name='Session Created Date'
     )
     user_agent = models.TextField(
         blank=True,
@@ -273,7 +260,7 @@ class GuestSession(models.Model):
     class Meta:
         verbose_name = 'Guest Session'
         verbose_name_plural = 'Guest Sessions'
-        ordering = ['-last_activity']
+        ordering = ['-last_export_date']
         indexes = [
             models.Index(fields=['guest_id']),
             models.Index(fields=['ip_address']),
@@ -291,34 +278,16 @@ class GuestSession(models.Model):
     
     def reset_daily_exports_if_new_day(self):
         """Reset การนับการส่งออกรายวันถ้าเป็นวันใหม่"""
-        
-        # ใช้ zoneinfo สำหรับ Python 3.11
         from zoneinfo import ZoneInfo
         bangkok_tz = ZoneInfo("Asia/Bangkok")
         bangkok_time = timezone.now().astimezone(bangkok_tz)
         today = bangkok_time.date()
         
-        # Debug logs 
-        print(f"DEBUG Reset Check - Guest {self.guest_id[:8]}:")
-        print(f"   UTC time: {timezone.now()}")
-        print(f"   Bangkok time: {bangkok_time}")
-        print(f"   Today (Bangkok): {today}")
-        print(f"   Last export date: {self.last_export_date}")
-        print(f"   Current exports used: {self.daily_exports_used}")
-        
         if self.last_export_date != today:
-            print(f"RESET! Different date detected")
-            old_used = self.daily_exports_used
             self.daily_exports_used = 0
             self.last_export_date = today
             self.save()
-            print(f"   Reset exports: {old_used} -> 0")
-        else:
-            print(f"No reset - same date")
-        
-        print(f"   Final exports used: {self.daily_exports_used}")
-        print("=" * 50)
-    
+
     def can_export_today(self):
         """ตรวจสอบว่า Guest สามารถส่งออกไฟล์ได้อีกหรือไม่"""
         self.reset_daily_exports_if_new_day()

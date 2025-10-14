@@ -52,7 +52,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             email=validated_data['email'],
             password=validated_data['password']
         )
-                # 🔐 ตั้งคำถามความปลอดภัยถ้ามี
+                # ตั้งคำถามความปลอดภัยถ้ามี
         if security_question_1 and security_answer_1 and security_question_2 and security_answer_2:
             user.set_security_questions(
                 security_question_1, security_answer_1,
@@ -61,7 +61,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             
         return user
 
-# 📋 Serializer สำหรับ UserActivityLog
+# Serializer สำหรับ UserActivityLog
 class UserActivityLogSerializer(serializers.ModelSerializer):
     action_display = serializers.CharField(source='get_action_display', read_only=True)
     user_username = serializers.CharField(source='user.username', read_only=True)
@@ -78,7 +78,7 @@ class UserActivityLogSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['timestamp']
 
-# 👤 User Serializer สำหรับ Admin (ข้อมูลครบถ้วน)
+#  User Serializer สำหรับ Admin (ข้อมูลครบถ้วน)
 class UserSerializer(serializers.ModelSerializer):
     user_type_display = serializers.CharField(source='get_user_type_display', read_only=True)
     password = serializers.CharField(write_only=True, required=False)
@@ -95,6 +95,20 @@ class UserSerializer(serializers.ModelSerializer):
             'password': {'write_only': True}
         }
     
+        # Validate email ตอน update
+    def validate_email(self, value):
+        """ตรวจสอบว่าอีเมลซ้ำหรือไม่"""
+        # ถ้าเป็นการ update (มี instance)
+        if self.instance:
+            # เช็คว่ามีคนใช้อีเมลนี้แล้วหรือไม่ (ยกเว้นตัวเอง)
+            if User.objects.filter(email=value).exclude(id=self.instance.id).exists():
+                raise serializers.ValidationError("อีเมลนี้มีผู้ใช้งานแล้ว")
+        else:
+            # ถ้าเป็นการสร้างใหม่
+            if User.objects.filter(email=value).exists():
+                raise serializers.ValidationError("อีเมลนี้มีผู้ใช้งานแล้ว")
+        return value
+
     def update(self, instance, validated_data):
         # จัดการ password แยก
         password = validated_data.pop('password', None)
@@ -110,7 +124,7 @@ class UserSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-# 📊 Serializer สำหรับ Admin Dashboard
+# Serializer สำหรับ Admin Dashboard
 class AdminStatsSerializer(serializers.Serializer):
     """ไม่ต้องใช้ Model - เป็น serializer สำหรับ API response"""
     total_users = serializers.IntegerField()
@@ -118,7 +132,7 @@ class AdminStatsSerializer(serializers.Serializer):
     total_conversions = serializers.IntegerField()
     conversions_today = serializers.IntegerField()
 
-# 🔍 User List Serializer (สำหรับ admin users list)
+# User List Serializer (สำหรับ admin users list)
 class UserListSerializer(serializers.ModelSerializer):
     """Serializer แบบย่อสำหรับ list view"""
     user_type_display = serializers.CharField(source='get_user_type_display', read_only=True)
