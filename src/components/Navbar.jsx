@@ -1,4 +1,3 @@
-// 🖤 Clean Dark Theme Navbar - เรียบๆ ไม่มี effects ฟุ้งๆ
 import React, { useEffect, useState } from "react";
 import UserProfileModal from './UserProfile/UserProfileModal';
 import { Link, useNavigate } from "react-router-dom";
@@ -96,12 +95,12 @@ export default function Navbar() {
     
     switch (userData.user_type) {
       case 'superuser':
-        return { icon: faUserTie, color: '#eab308' }; // สีเหลือง
+        return { icon: faUserTie, color: '#eab308' }; 
       case 'admin':
-        return { icon: faUserShield, color: '#dc2626' }; // สีแดง
+        return { icon: faUserShield, color: '#dc2626' }; 
       case 'user':
       default:
-        return { icon: faUser, color: '#6b7280' }; // สีเทา
+        return { icon: faUser, color: '#6b7280' }; 
     }
   };
   const { icon, color } = getUserIcon();
@@ -268,13 +267,13 @@ export default function Navbar() {
 
   return (
     <nav style={styles.navbar}>
-      {/* Brand Section */}
+      {/* ชื่อเว็บไซต์ */}
       <h3 style={styles.brand}>
         <FontAwesomeIcon icon={faImage} style={styles.brandIcon} />
         Bitmap to Vector
       </h3>
       
-      {/* User Section */}
+      {/* โหลดข้อมูลผู้ใช้ */}
       <div style={styles.userSection}>
         {loading ? (
           <div style={styles.loading}>
@@ -283,7 +282,7 @@ export default function Navbar() {
           </div>
         ) : userData ? (
           <>
-            {/* User Info */}
+            {/* ปุ่มแก้ไขโปรไฟล์ */}
             <div style={styles.userInfo}>
               <FontAwesomeIcon 
                 icon={icon} 
@@ -302,7 +301,7 @@ export default function Navbar() {
                 </button>
             </div>
             
-            {/* Admin Panel Link */}
+            {/* ปุ่มหน้าจัดการระบบ */}
             {userData.user_type !== 'user' && (
               <Link to="/admin" style={styles.adminLink}>
                 <FontAwesomeIcon icon={faCog} />
@@ -310,7 +309,7 @@ export default function Navbar() {
               </Link>
             )}
             
-            {/* Logout Button */}
+            {/* ปุ่มออกจากระบบ */}
             <button onClick={handleLogout} style={styles.logoutButton}>
               <FontAwesomeIcon icon={faSignOutAlt} />
               ออกจากระบบ
@@ -323,7 +322,7 @@ export default function Navbar() {
           </Link>
         )}
       </div>
-          {/* Profile Modal */}
+          {/* โมเดลสำหรับแก้ไขโปรไฟล์ */}
           {showProfileModal && (
           <UserProfileModal 
             isOpen={showProfileModal}

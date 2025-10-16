@@ -86,13 +86,6 @@ def verify_security_answers(request):
     user_id = request.data.get('user_id')
     answer_1 = request.data.get('answer_1', '').strip()
     answer_2 = request.data.get('answer_2', '').strip()
-    
-    print("=== DEBUG SECURITY ANSWERS ===")
-    print(f"User ID: {user_id}")
-    print(f"Input Answer 1: '{answer_1}'")
-    print(f"Input Answer 2: '{answer_2}'")
-    print(f"Input Answer 1 length: {len(answer_1)}")
-    print(f"Input Answer 2 length: {len(answer_2)}")
 
     if not all([user_id, answer_1, answer_2]):
         return Response({
@@ -102,26 +95,6 @@ def verify_security_answers(request):
     try:
         user = User.objects.get(id=user_id)
         
-        # Debug stored answers
-        print(f"Stored Answer 1: '{user.security_answer_1}'")
-        print(f"Stored Answer 2: '{user.security_answer_2}'")
-        print(f"Stored Answer 1 length: {len(user.security_answer_1) if user.security_answer_1 else 0}")
-        print(f"Stored Answer 2 length: {len(user.security_answer_2) if user.security_answer_2 else 0}")
-        
-        # Debug normalized answers
-        stored_answer_1 = user.security_answer_1.lower().strip() if user.security_answer_1 else ''
-        stored_answer_2 = user.security_answer_2.lower().strip() if user.security_answer_2 else ''
-        input_answer_1 = answer_1.lower().strip()
-        input_answer_2 = answer_2.lower().strip()
-        
-        print(f"Normalized Stored 1: '{stored_answer_1}'")
-        print(f"Normalized Stored 2: '{stored_answer_2}'")
-        print(f"Normalized Input 1: '{input_answer_1}'")
-        print(f"Normalized Input 2: '{input_answer_2}'")
-        print(f"Answer 1 match: {stored_answer_1 == input_answer_1}")
-        print(f"Answer 2 match: {stored_answer_2 == input_answer_2}")
-        print("=" * 50)
-
         # ตรวจสอบคำตอบ
         if user.verify_security_answers(answer_1, answer_2):
             # สร้าง temporary token สำหรับ reset password
@@ -163,13 +136,6 @@ def reset_password(request):
     reset_token = request.data.get('reset_token')
     new_password = request.data.get('new_password')
     confirm_password = request.data.get('confirm_password')
-    
-    print(f"\n=== RESET PASSWORD DEBUG ===")
-    print(f"Received token: {reset_token}")
-    print(f"Session ID: {request.session.session_key}")
-    print(f"All session data: {dict(request.session)}")
-    print(f"All session keys: {list(request.session.keys())}")
-    print(f"Looking for key: reset_token_{reset_token}")
     
     if not all([reset_token, new_password, confirm_password]):
         return Response({

@@ -1,4 +1,3 @@
-// admin/utils/UserManagement/formatUtils.js
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { userTypeStyles, userTypeDisplayMap } from './constants';
 

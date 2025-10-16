@@ -239,9 +239,9 @@ export default function AdminDashboard() {
 
   const getUserTypeIcon = (type) => {
     const iconMap = {
-      'user': { icon: faUser, color: '#6b7280' }, // สีเทา
-      'admin': { icon: faUserShield, color: '#dc2626' }, // สีแดง
-      'superuser': { icon: faUserTie, color: '#eab308' } // สีเหลือง
+      'user': { icon: faUser, color: '#6b7280' }, 
+      'admin': { icon: faUserShield, color: '#dc2626' }, 
+      'superuser': { icon: faUserTie, color: '#eab308' } 
     };
     return iconMap[type] || { icon: faUser, color: '#6b7280' };
   };
@@ -255,7 +255,7 @@ export default function AdminDashboard() {
           <p style={styles.subtitle}>ภาพรวมการใช้งานระบบ Bitmap to SVG Converter</p>
         </div>
 
-        {/* Stats Cards */}
+        {/* สเตตัสการใช้งาน */}
         <div style={styles.statsGrid}>
           <div style={styles.statCard}>
             <div style={styles.statCardHeader}>

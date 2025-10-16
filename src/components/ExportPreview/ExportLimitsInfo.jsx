@@ -25,7 +25,7 @@ const ExportLimitsInfo = ({ limitsInfo, isLimitsLoading }) => {
     );
   }
 
-  // Error State (No limits info)
+  // ถ้า Error (ไม่เจอข้อมูล limit)
   if (!limitsInfo) {
     return (
       <div style={limitsInfoStyle}>
@@ -39,7 +39,7 @@ const ExportLimitsInfo = ({ limitsInfo, isLimitsLoading }) => {
 
   const { user_type, is_unlimited, daily_limit, used_today, remaining } = limitsInfo;
 
-  // Unlimited User (Admin/Superuser)
+  // ผู้ใช้ที่ส่งออกได้ไม่จำกัด (Admin/Superuser)
   if (is_unlimited) {
     return (
       <div style={limitsInfoStyle}>
@@ -62,7 +62,7 @@ const ExportLimitsInfo = ({ limitsInfo, isLimitsLoading }) => {
     );
   }
 
-  // Regular User/Guest
+  // ผู้ใช้ทั่วไป User/Guest
   return (
     <div style={limitsInfoStyle}>
       <div style={limitsSectionStyle}>
@@ -97,7 +97,7 @@ const ExportLimitsInfo = ({ limitsInfo, isLimitsLoading }) => {
         </div>
       )}
 
-      {/* Progress Bar for Visual Representation */}
+      {/* หลอดแสดงจำนวนการส่งออก */}
       <div style={progressSectionStyle}>
         <div style={progressBarBackgroundStyle}>
           <div 
@@ -116,7 +116,6 @@ const ExportLimitsInfo = ({ limitsInfo, isLimitsLoading }) => {
   );
 };
 
-// Styles
 const limitsInfoStyle = {
   backgroundColor: '#2a2a2a',
   border: '1px solid #444',

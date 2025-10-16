@@ -14,7 +14,7 @@ const UploadImage = ({ setImageSrc, setFilename, imageSrc }) => {
       
       // ตรวจสอบว่าผู้ใช้ login อยู่หรือไม่
       if (!token) {
-        console.log('User not logged in, skipping upload logging');
+        console.log('ถ้าผู้ใช้ไม่ได้เข้าสู่ระบบ ไม่ต้องบันทึก log upload');
         return;
       }
 
@@ -26,10 +26,9 @@ const UploadImage = ({ setImageSrc, setFilename, imageSrc }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      console.log('Upload logged successfully');
+      console.log('อัปโหลดไฟล์สำเร็จ');
     } catch (error) {
-      console.error('Failed to log upload:', error);
-      // ไม่ต้องแสดง error ให้ผู้ใช้เห็น เพราะไม่ใช่ core functionality
+      console.error('อัปโหลดไฟล์ไม่สำเร็จ:', error);
     }
   };
 
@@ -48,7 +47,6 @@ const UploadImage = ({ setImageSrc, setFilename, imageSrc }) => {
       setFilename(file.name); 
     }
 
-    // บันทึก upload log
     logUpload(file);
   };
 
@@ -80,7 +78,7 @@ const UploadImage = ({ setImageSrc, setFilename, imageSrc }) => {
 
   return (
     <div style={styles.container}>
-      {/* Upload Area */}
+      {/* กล่องสำหรับอัพโหลดไฟล์ภาพ */}
       <div
         onClick={() => fileInputRef.current.click()}
         onDrop={handleDrop}
@@ -118,7 +116,6 @@ const UploadImage = ({ setImageSrc, setFilename, imageSrc }) => {
   );
 };
 
-// Styles
 const styles = {
   container: {
     marginBottom: '16px',

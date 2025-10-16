@@ -1,4 +1,3 @@
-// src/pages/UserProfile/BasicInfoTab.jsx
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -253,7 +252,7 @@ export default function BasicInfoTab({
 
   return (
     <div style={styles.container}>
-      {/* Info Box */}
+      {/* กล่องข้อมูล */}
       <div style={styles.infoBox}>
         <div style={styles.infoText}>
           <FontAwesomeIcon icon={faInfoCircle} style={{ marginTop: '2px', flexShrink: 0 }} />
@@ -264,7 +263,7 @@ export default function BasicInfoTab({
         </div>
       </div>
 
-      {/* Email Section */}
+      {/* ช่องอีเมล */}
       <div style={styles.section}>
         <h4 style={styles.sectionTitle}>ข้อมูลส่วนตัว</h4>
         
@@ -293,7 +292,7 @@ export default function BasicInfoTab({
             </span>
           )}
           
-          {/* Email validation indicator */}
+          {/* ตรวจสอบรูปแบบอีเมล */}
           {formData.email && /\S+@\S+\.\S+/.test(formData.email) && !errors.email && (
             <div style={{
               ...styles.validationIndicator,
@@ -306,7 +305,7 @@ export default function BasicInfoTab({
         </div>
       </div>
 
-      {/* Save Button */}
+      {/* ปุ่มบันทึก */}
       <div style={{ marginTop: '30px' }}>
         <button
           onClick={handleSaveClick}
@@ -341,7 +340,7 @@ export default function BasicInfoTab({
           )}
         </button>
 
-        {/* Status message */}
+        {/* แจ้งเตือนการเปลี่ยนแปลงข้อมูล ถ้าไม่มีการเปลี่ยนแปลง*/}
         {!isEmailChanged && !loading && (
           <div style={{
             marginTop: '12px',
@@ -357,7 +356,7 @@ export default function BasicInfoTab({
         )}
       </div>
 
-      {/* Confirmation Dialog */}
+      {/* กล่องยืนยันการแก้ไขข้อมูล */}
       {showConfirmDialog && (
         <div style={styles.confirmDialog} onClick={() => setShowConfirmDialog(false)}>
           <div style={styles.confirmDialogContent} onClick={(e) => e.stopPropagation()}>

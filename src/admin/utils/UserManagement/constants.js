@@ -1,7 +1,7 @@
 // admin/utils/UserManagement/constants.js
 import { faUser, faUserShield, faUserTie } from '@fortawesome/free-solid-svg-icons';
 
-// User type options for filters
+// ฟิลเตอร์สำหรับเลือกประเภทผู้ใช้
 export const userTypeOptions = [
   { value: '', label: 'ทุกตำแหน่ง' },
   { value: 'user', label: 'User' },
@@ -9,7 +9,7 @@ export const userTypeOptions = [
   { value: 'superuser', label: 'Super User' }
 ];
 
-// Status options for filters
+// ฟิลเตอร์สถานะผู้ใช้
 export const statusOptions = [
   { value: '', label: 'ทุกสถานะ' },
   { value: 'true', label: 'ใช้งานได้' },
@@ -23,7 +23,7 @@ export const userTypeDisplayMap = {
   'superuser': 'Super User'
 };
 
-// User type styling
+// สไตล์ของแต่ละประเภทผู้ใช้
 export const userTypeStyles = {
   'user': {
     icon: faUser,
@@ -50,7 +50,7 @@ export const paginationConfig = {
   perPage: 10
 };
 
-// API endpoints
+// เรียก epi
 export const apiEndpoints = {
   getUsers: 'http://localhost:8000/api/accounts/admin/users/',
   updateUser: (id) => `http://localhost:8000/api/accounts/admin/users/${id}/`,
@@ -58,16 +58,6 @@ export const apiEndpoints = {
   deleteUser: (id) => `http://localhost:8000/api/accounts/admin/users/${id}/`,
   exportUserActivity: (id) => `http://localhost:8000/api/accounts/admin/logs/?user_id=${id}`
 };
-
-// Table column configurations
-export const tableColumns = [
-  { key: 'user', label: 'ผู้ใช้', width: '25%' },
-  { key: 'email', label: 'อีเมล', width: '25%' },
-  { key: 'status', label: 'สถานะ', width: '15%' },
-  { key: 'dateJoined', label: 'วันที่สมัคร', width: '15%' },
-  { key: 'lastActivity', label: 'กิจกรรมล่าสุด', width: '15%' },
-  { key: 'actions', label: 'การจัดการ', width: '15%' }
-];
 
 // Messages
 export const messages = {
@@ -85,18 +75,3 @@ export const messages = {
   exportActivityError: 'ไม่สามารถส่งออก Activity Logs ได้'
 };
 
-// Permission levels
-export const permissionLevels = {
-  NONE: 0,
-  VIEW: 1,
-  EDIT: 2,
-  DELETE: 3,
-  FULL: 4
-};
-
-// Action types for consistency
-export const actionTypes = {
-  EDIT: 'edit',
-  DELETE: 'delete',
-  EXPORT_ACTIVITY: 'export_activity'
-};

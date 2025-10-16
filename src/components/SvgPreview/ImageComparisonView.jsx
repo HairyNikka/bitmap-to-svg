@@ -1,4 +1,3 @@
-// src/components/SvgPreview/ImageComparisonView.jsx
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faImage, faMagicWandSparkles } from '@fortawesome/free-solid-svg-icons';
@@ -10,7 +9,6 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
   const [svgReady, setSvgReady] = useState(false);
   const [wrapperSize, setWrapperSize] = useState(500);
   const [isMobile, setIsMobile] = useState(false);
-
   const svgRef = useRef(null);
   const imageRef = useRef(null);
   const containerRef = useRef(null);
@@ -18,20 +16,16 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
   const lastPos = useRef({ x: 0, y: 0 });
   const svgRenderTimeout = useRef(null);
   const moveFrame = useRef(null);
-  
-
   const border = 100;
 
-  // 📱 ฟังก์ชันคำนวณขนาดตามหน้าจอ
   const getResponsiveSize = () => {
     const width = window.innerWidth;
-    if (width < 480) return { size: 280, isMobile: true };   // มือถือเล็ก
-    if (width < 768) return { size: 320, isMobile: true };   // มือถือใหญ่
-    if (width < 1024) return { size: 400, isMobile: false }; // แท็บเล็ต
-    return { size: 500, isMobile: false }; // Desktop
+    if (width < 480) return { size: 280, isMobile: true };  
+    if (width < 768) return { size: 320, isMobile: true };   
+    if (width < 1024) return { size: 400, isMobile: false }; 
+    return { size: 500, isMobile: false }; 
   };
 
-  // 🔄 Debounced resize handler
   const debouncedResize = useMemo(() => {
     let timeoutId;
     return () => {
@@ -44,7 +38,6 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
     };
   }, []);
 
-  // 📐 Setup responsive ตอน mount และ resize
   useEffect(() => {
     const { size, isMobile: mobile } = getResponsiveSize();
     setWrapperSize(size);
@@ -61,7 +54,6 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
     setPosition({ x: 0, y: 0 });
   };
 
-  // ✅ เพิ่ม useImperativeHandle เพื่อให้ parent เรียกใช้ได้
   useImperativeHandle(ref, () => ({
     resetView
   }));
@@ -103,12 +95,12 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
     }, 500);
   };
 
-  // 🎯 Mouse/Touch Events - รองรับทั้งสอง
+  //  Mouse/Touch 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // 🖱️ Mouse Events
+    // Mouse Events
     const handleMouseDown = (e) => {
       e.preventDefault();
       dragging.current = true;
@@ -132,7 +124,7 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
       triggerSvgDelay();
     };
 
-    // 📱 Touch Events
+    // Touch Events
     const handleTouchStart = (e) => {
       if (e.touches.length === 1) {
         e.preventDefault();
@@ -162,7 +154,7 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
       triggerSvgDelay();
     };
 
-    // 🔍 Wheel/Pinch Events  
+    // Wheel/Pinch Events  
     const handleWheel = (e) => {
       e.preventDefault();
       const delta = e.deltaY > 0 ? -0.1 : 0.1;
@@ -199,9 +191,8 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
       if (svgRenderTimeout.current) clearTimeout(svgRenderTimeout.current);
       if (moveFrame.current) cancelAnimationFrame(moveFrame.current);
     };
-  }, [zoom, wrapperSize]); // เพิ่ม wrapperSize dependency
+  }, [zoom, wrapperSize]); 
 
-  // Styles
   const styles = {
     container: {
       display: 'flex',
@@ -220,13 +211,13 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
     },
     sectionTitle: {
       margin: 0,
-      marginBottom: 8,        // เพิ่มจาก 6 เป็น 8
-      marginTop: 50,           // ← เพิ่มบรรทัดนี้
+      marginBottom: 8,        
+      marginTop: 50,           
       color: '#ffffff',
       fontSize: isMobile ? '14px' : '16px',
       fontWeight: '500',
       textAlign: isMobile ? 'center' : 'left',
-      position: 'relative',   // ← เพิ่มบรรทัดนี้
+      position: 'relative',  
     },
     wrapper: {
       width: `${wrapperSize}px`,
@@ -244,7 +235,7 @@ export default forwardRef(function ImageComparisonView({ imageSrc, svg, cachedPn
       cursor: dragging.current ? 'grabbing' : 'grab',
       borderRadius: '8px',
       margin: isMobile ? '0 auto' : '0',
-      touchAction: 'none', // ป้องกันการเลือกข้อความ
+      touchAction: 'none',
       userSelect: 'none',
       WebkitUserSelect: 'none'
     },

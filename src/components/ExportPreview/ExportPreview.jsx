@@ -48,7 +48,6 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
     }
   };
 
-  // Export button configuration
   const exportButtons = [
     {
       type: 'png',
@@ -80,22 +79,22 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
   return (
     <div style={overlayStyle} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div style={modalStyle}>
-        {/* Close Button */}
+        {/* ปุ่มปิด */}
         <button onClick={onClose} style={closeButtonStyle}>
           <FontAwesomeIcon icon={faTimes} />
         </button>
 
-        {/* Header */}
+        {/* หัวเรื่อง */}
         <h3 style={headerStyle}>
           <FontAwesomeIcon icon={faFile} style={{ marginRight: '8px' }} />
           ตัวอย่างภาพเวกเตอร์ & ดาวน์โหลด
         </h3>
 
         <div style={contentContainerStyle}>
-          {/* Preview Section */}
+          {/* หน้าพรีวิว */}
           <div style={previewSectionStyle}>
             <div style={previewWrapperStyle}>
-              {/* Cached PNG Layer (Background) */}
+              {/* เป็นไฟล์ Cached PNG ในพิ้นหลัง */}
               {cachedPng && (
                 <img 
                   src={cachedPng} 
@@ -115,7 +114,7 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
 
           {/* Info & Controls Section */}
           <div style={controlsSectionStyle}>
-            {/* File Information */}
+            {/* ข้อมูลไฟล์ */}
             <div style={infoBoxStyle}>
               <div style={infoRowStyle}>
                 <FontAwesomeIcon icon={faFile} style={infoIconStyle} />
@@ -144,7 +143,7 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
               </div>
             </div>
 
-            {/* Export Buttons */}
+            {/* ปุ่มส่งออก */}
             <div style={exportButtonsContainerStyle}>
               {exportButtons.map((button) => {
                 const isEnabled = button.always_enabled || canExport(button.type);
@@ -173,13 +172,13 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
               })}
             </div>
 
-            {/* Limits Information */}
+            {/* ดึงข้อมูลลิมิตการส่งออกจากอีกไฟล์ */}
             <ExportLimitsInfo 
               limitsInfo={limitsInfo} 
               isLimitsLoading={isLimitsLoading} 
             />
 
-            {/* Loading Progress */}
+            {/* หลอดโหลดการส่งออก */}
             {loadingType && (
               <div style={progressContainerStyle}>
                 <div style={progressTextStyle}>
@@ -203,7 +202,6 @@ const ExportPreview = ({ svg, cachedPng, onClose, filename, dimensions, colorCou
   );
 };
 
-// Styles
 const overlayStyle = {
   position: 'fixed',
   top: 0,

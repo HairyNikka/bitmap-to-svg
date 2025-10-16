@@ -31,9 +31,7 @@ from .admin_views import (
 )
 
 urlpatterns = [
-    # =========================================================================
     # AUTHENTICATION ENDPOINTS
-    # =========================================================================
     path('register/', RegisterView.as_view(), name='register'),
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),  # JWT Login with logging
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # JWT Refresh
@@ -44,26 +42,20 @@ urlpatterns = [
     path('login/', login_view, name='session_login'),  # Session Login
     path('logout/', logout_view, name='logout'),       # Session Logout
     
-    # =========================================================================
     # PROFILE MANAGEMENT
-    # =========================================================================
     path('profile/', update_profile, name='update_profile'),
     
     # Availability Checks
     path('check-email/', check_email_availability, name='check_email_availability'),
     path('check-username/', check_username_availability, name='check_username_availability'),
     
-    # =========================================================================
     # PASSWORD RESET WITH SECURITY QUESTIONS
-    # =========================================================================
     path('forgot-password/', forgot_password, name='forgot_password'),
     path('verify-security-answers/', verify_security_answers, name='verify_security_answers'),
     path('reset-password/', reset_password, name='reset_password'),
     path('security-questions/', get_security_questions, name='get_security_questions'),
 
-    # =========================================================================
     # ACTIVITY LOGS & EXPORT MANAGEMENT
-    # =========================================================================
     path('logs/', user_activity_logs, name='user_logs'),  # ดู activity logs
     path('export-limits/', get_export_limits, name='get_export_limits'),    # ดู export limits
     
@@ -72,9 +64,7 @@ urlpatterns = [
     path('log-conversion/', log_conversion, name='log_conversion'),  # บันทึกการแปลง
     path('log-export/', log_export, name='log_export'),              # บันทึกการส่งออก
 
-    # =========================================================================
-    # ADMIN APIs - USER MANAGEMENT
-    # =========================================================================
+    # USER MANAGEMENT
     path('admin/stats/', admin_dashboard_stats, name='admin_dashboard_stats'),
     path('admin/users/', admin_users_list, name='admin_users_list'),
     path('admin/users/<int:user_id>/', admin_user_detail, name='admin_user_detail'),

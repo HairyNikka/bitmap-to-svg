@@ -17,7 +17,7 @@ const useExportLogic = () => {
     return guestId;
   }, []);
 
-  // Fetch Export Limits
+  // ดึงข้อมูลโควตาการส่งออก
   const fetchExportLimits = useCallback(async () => {
     setIsLimitsLoading(true);
     try {
@@ -60,7 +60,7 @@ const useExportLogic = () => {
     }
   }, [getOrCreateGuestId]);
 
-  // Log Export Activity
+  // Log การส่งออก
   const logExport = useCallback(async (format) => {
     try {
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
@@ -68,7 +68,7 @@ const useExportLogic = () => {
       
       const payload = {
         format: format.toLowerCase(),
-        filename: 'converted' // This will be passed from component
+        filename: 'converted' 
       };
 
       // Add guest_id for guest users
@@ -88,7 +88,7 @@ const useExportLogic = () => {
         localStorage.setItem('guestId', response.data.guest_id);
       }
 
-      // Refresh limits after export
+      // รีเฟรชขีดจำกัดหลังการส่งออก
       await fetchExportLimits();
 
       return {
@@ -119,7 +119,7 @@ const useExportLogic = () => {
     }
   }, [getOrCreateGuestId, fetchExportLimits]);
 
-  // Progress Animation
+  // หลอดโหลด
   useEffect(() => {
     let interval;
     let isMounted = true;
@@ -147,7 +147,7 @@ const useExportLogic = () => {
     };
   }, [loadingType]);
 
-  // Download Functions
+  // ฟังก์ชันการดาวน์โหลด
   const downloadSVG = useCallback(async (svg, filename) => {
     const blob = new Blob([svg], { type: 'image/svg+xml' });
     return blob;
@@ -201,19 +201,19 @@ const useExportLogic = () => {
     try {
       let blob;
       
-      // For PNG, we don't check limits (unlimited)
+      // PNG ไม่ต้องตรวจสอบโควตาการส่งออก
       if (type === 'png') {
-        await logExport(type); // Log but don't check success
+        await logExport(type);
         blob = await downloadPNG(svg);
       } else {
-        // For SVG/PDF/EPS, check limits first
+        // ถ้า SVG/PDF/EPS, ต้องตรวจสอบโควตาส่งออก
         const exportResult = await logExport(type);
         
         if (!exportResult.success) {
-          return; // Stop if limit exceeded
+          return; // หยุดถ้าโควตาเกิน
         }
         
-        // Create blob based on type
+        // สร้าง blob ตามประเภทไฟล์
         if (type === 'svg') {
           blob = await downloadSVG(svg, filename);
         } else if (type === 'pdf' || type === 'eps') {
@@ -221,7 +221,7 @@ const useExportLogic = () => {
         }
       }
 
-      // Download the file
+      // โหลดไฟล์
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -231,7 +231,7 @@ const useExportLogic = () => {
 
     } catch (error) {
       console.error(`${type.toUpperCase()} export failed:`, error);
-      throw error; // Let component handle the error display
+      throw error; 
     } finally {
       setLoadingType(null);
       setProgress(100);
@@ -257,7 +257,7 @@ const useExportLogic = () => {
     // Computed values
     canExport: (type) => {
       if (!limitsInfo) return false;
-      if (type === 'png') return true; // PNG is always available
+      if (type === 'png') return true; // PNG จะโหลดได้เสมอ
       if (limitsInfo.is_unlimited) return true;
       return limitsInfo.remaining > 0;
     }

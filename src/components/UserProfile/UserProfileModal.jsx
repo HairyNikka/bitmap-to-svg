@@ -1,4 +1,3 @@
-// src/pages/UserProfile/UserProfileModal.jsx
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -60,7 +59,7 @@ const UserProfileModal = ({ isOpen, onClose, userData, onUpdate }) => {
     setSuccess('');
   };
 
-  // Get user icon based on user type
+  // ไอค่อนตามตำแหน่งผู้ใช้
   const getUserIcon = () => {
     if (!userData) return { icon: faUser, color: '#6b7280' };
     
@@ -75,7 +74,7 @@ const UserProfileModal = ({ isOpen, onClose, userData, onUpdate }) => {
     }
   };
 
-  // Get role badge
+  // สีพื้นหลังตามตำแหน่งผู้ใช้
   const getRoleBadge = () => {
     if (!userData || userData.user_type === 'user') return null;
     
@@ -89,7 +88,7 @@ const UserProfileModal = ({ isOpen, onClose, userData, onUpdate }) => {
     }
   };
 
-  // Format date
+  // format วันที่
   const formatDate = (dateString) => {
     if (!dateString) return 'ไม่ระบุ';
     const date = new Date(dateString);
@@ -103,14 +102,14 @@ const UserProfileModal = ({ isOpen, onClose, userData, onUpdate }) => {
   const { icon, color } = getUserIcon();
   const roleBadge = getRoleBadge();
 
-  // Tabs configuration
+  // แท็บทั้งหมด
   const tabs = [
     { id: 'basic', label: 'ข้อมูลส่วนตัว', icon: faEnvelope },
     { id: 'password', label: 'รหัสผ่าน', icon: faLock },
     { id: 'security', label: 'คำถามความปลอดภัย', icon: faShieldAlt }
   ];
 
-  // Render tab content
+  // เรนเดอร์แท็บตามแท็บที่เลือก
   const renderTabContent = () => {
     const commonProps = {
       formData,
@@ -306,7 +305,7 @@ const UserProfileModal = ({ isOpen, onClose, userData, onUpdate }) => {
   return (
     <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && handleClose()}>
       <div style={styles.modal}>
-        {/* Header */}
+        {/* ส่วนด้านบน */}
         <div style={styles.header}>
           <h3 style={styles.headerTitle}>แก้ไขโปรไฟล์</h3>
           <button 
@@ -323,7 +322,7 @@ const UserProfileModal = ({ isOpen, onClose, userData, onUpdate }) => {
         <div style={styles.content}>
           {/* Sidebar */}
           <div style={styles.sidebar}>
-            {/* User Info Section */}
+            {/* ข้อมูลส่วนตัวผู้ใช้ */}
             <div style={styles.userSection}>
               <div style={styles.userIconContainer}>
                 <FontAwesomeIcon 
@@ -357,7 +356,7 @@ const UserProfileModal = ({ isOpen, onClose, userData, onUpdate }) => {
               </div>
             </div>
 
-            {/* Tabs Navigation */}
+            {/* แบบเลือกแท็บ */}
             <div style={styles.tabsList}>
               {tabs.map((tab) => (
                 <button
@@ -390,7 +389,7 @@ const UserProfileModal = ({ isOpen, onClose, userData, onUpdate }) => {
 
           {/* Main Content */}
           <div style={styles.mainContent}>
-            {/* Error/Success Messages */}
+            {/* ข้อความเมื่อเกิดข้อผิดพลาด หรือสำเร็จ */}
             {error && (
               <div style={styles.errorMessage}>
                 <FontAwesomeIcon icon={faExclamation} />
@@ -405,7 +404,7 @@ const UserProfileModal = ({ isOpen, onClose, userData, onUpdate }) => {
               </div>
             )}
 
-            {/* Render Active Tab Content */}
+            {/* โชว์เนื้อหาตามแท็บที่เลือก */}
             {renderTabContent()}
           </div>
         </div>

@@ -113,7 +113,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = 'accounts.User'
 
-# Django Admin customization (เพิ่มเติม)
+# Django Admin customization 
 ADMIN_SITE_HEADER = "Bitmap to Vector - ระบบจัดการ"
 ADMIN_SITE_TITLE = "Admin Panel"
 ADMIN_INDEX_TITLE = "ระบบจัดการหลังบ้าน"
@@ -141,15 +141,13 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ✅ CORS Settings - Updated
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True  # สำหรับ development
+CORS_ALLOW_ALL_ORIGINS = True  
 
-# ✅ เพิ่ม CORS Headers สำหรับ X-Guest-ID
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',

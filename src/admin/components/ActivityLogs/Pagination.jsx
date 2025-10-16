@@ -1,4 +1,3 @@
-// admin/components/ActivityLogs/Pagination.jsx
 import React from 'react';
 
 const Pagination = ({
@@ -177,7 +176,7 @@ const Pagination = ({
           </>
         )}
 
-        {/* Page Numbers */}
+        {/* ตัวเลขหน้า */}
         {pageNumbers.map(page => (
           <button
             key={page}
@@ -218,7 +217,7 @@ const Pagination = ({
           </>
         )}
 
-        {/* Next Button */}
+        {/* ปุ่มถัดไป */}
         <button
           onClick={onNextPage}
           disabled={!hasNextPage}
@@ -241,7 +240,7 @@ const Pagination = ({
         </button>
       </div>
 
-      {/* Page Info */}
+      {/* ข้อมูลหน้า*/}
       <div style={styles.pageInfo}>
         หน้า {currentPage} จาก {totalPages}
       </div>

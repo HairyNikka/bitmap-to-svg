@@ -1,4 +1,3 @@
-// src/admin/components/modals/EditUserModal/PasswordTab.jsx - Improved version
 import React, { useState, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -73,7 +72,7 @@ export default function PasswordTab({
         }, 
         {
           headers: { Authorization: `Bearer ${token}` },
-          timeout: 10000 // 10 second timeout
+          timeout: 10000 
         }
       );
 
@@ -103,7 +102,6 @@ export default function PasswordTab({
     }
   };
 
-  // Styles with improved animations
   const styles = {
     formGroup: {
       marginBottom: '20px'
@@ -362,7 +360,7 @@ export default function PasswordTab({
           </button>
         </div>
 
-        {/* Password validation indicators */}
+        {/* ยืนยันความถูกต้องของรหัสผ่านใหม่ */}
         {passwordData.new_password && (
           <div style={styles.validationList}>
             <div style={{
@@ -402,7 +400,7 @@ export default function PasswordTab({
           </button>
         </div>
         
-        {/* Password match indicator */}
+        {/* รหัสผ่านตรงกัน - แจ้งเตือน*/}
         {passwordData.confirm_password && passwordValidation.isLengthValid && (
           <div style={{
             ...styles.matchIndicator,
@@ -452,7 +450,7 @@ export default function PasswordTab({
         </button>
       </div>
 
-      {/* Confirmation Dialog */}
+      {/* กล่องยืนยันการเปลี่ยนรหัสผ่าน */}
       {showConfirmDialog && (
         <div style={styles.confirmDialog} onClick={() => setShowConfirmDialog(false)}>
           <div style={styles.confirmDialogContent} onClick={(e) => e.stopPropagation()}>

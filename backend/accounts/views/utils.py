@@ -1,4 +1,3 @@
-# backend/accounts/views/utils.py
 """
 Shared Utility Functions for Views
 """

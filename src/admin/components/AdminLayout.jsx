@@ -1,5 +1,4 @@
-// 🖤 Clean Dark Admin Layout - เหมือน navbar เรียบๆ
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -12,18 +11,24 @@ import {
   faUser,
   faUserShield,
   faUserTie,
-  faSpinner
+  faSpinner,
+  faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 
 export default function AdminLayout({ children }) {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const hasChecked = useRef(false); 
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    checkAdminAccess();
+    if (!hasChecked.current) {
+      hasChecked.current = true;
+      checkAdminAccess();
+    }
   }, []);
 
   const checkAdminAccess = async () => {
@@ -44,8 +49,10 @@ export default function AdminLayout({ children }) {
       const user = response.data;
       
       if (user.user_type !== 'admin' && user.user_type !== 'superuser') {
-        alert('คุณไม่มีสิทธิ์เข้าถึงระบบจัดการ');
-        navigate('/');
+        setErrorMessage('คุณไม่มีสิทธิ์เข้าถึงระบบจัดการ คุณต้องเป็น Admin หรือ Superuser เท่านั้น');
+
+        // ออกให้หลัง 3 วินาที
+        setTimeout(() => navigate('/'), 3000);
         return;
       }
 
@@ -58,10 +65,21 @@ export default function AdminLayout({ children }) {
       
     } catch (error) {
       console.error('Admin access check failed:', error);
+      
+      if (error.response?.status === 401) {
+        setErrorMessage('Token หมดอายุ กรุณาเข้าสู่ระบบใหม่');
+        setTimeout(() => navigate('/login'), 2000);
+      } else if (error.response?.status === 403) {
+        setErrorMessage('คุณไม่มีสิทธิ์เข้าถึงระบบจัดการ');
+        setTimeout(() => navigate('/'), 3000);
+      } else {
+        setErrorMessage('เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์');
+        setTimeout(() => navigate('/login'), 2000);
+      }
+      
       localStorage.removeItem('accessToken');
       localStorage.removeItem('token');
       localStorage.removeItem('userData');
-      navigate('/login');
     } finally {
       setLoading(false);
     }
@@ -96,12 +114,12 @@ export default function AdminLayout({ children }) {
     
     switch (userData.user_type) {
       case 'superuser':
-        return { icon: faUserTie, color: '#eab308' }; // สีเหลือง
+        return { icon: faUserTie, color: '#eab308' };
       case 'admin':
-        return { icon: faUserShield, color: '#dc2626' }; // สีแดง
+        return { icon: faUserShield, color: '#dc2626' };
       case 'user':
       default:
-        return { icon: faUser, color: '#6b7280' }; // สีเทา
+        return { icon: faUser, color: '#6b7280' };
     }
   };
   const { icon, color } = getUserIcon();
@@ -256,9 +274,72 @@ export default function AdminLayout({ children }) {
       display: 'flex',
       alignItems: 'center',
       gap: '8px'
+    },
+    // ✅ เพิ่ม Error Screen Styles
+    errorContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '100vh',
+      backgroundColor: '#1a1a1a',
+      color: '#ffffff',
+      textAlign: 'center',
+      padding: '20px'
+    },
+    errorBox: {
+      backgroundColor: '#2a2a2a',
+      border: '2px solid #dc3545',
+      borderRadius: '12px',
+      padding: '40px 30px',
+      maxWidth: '500px',
+      boxShadow: '0 4px 20px rgba(220, 53, 69, 0.2)'
+    },
+    errorIcon: {
+      fontSize: '48px',
+      color: '#dc3545',
+      marginBottom: '20px'
+    },
+    errorTitle: {
+      fontSize: '24px',
+      fontWeight: '600',
+      marginBottom: '16px',
+      color: '#ffffff'
+    },
+    errorMessage: {
+      fontSize: '16px',
+      color: '#e0e0e0',
+      lineHeight: '1.6',
+      marginBottom: '24px'
+    },
+    redirectInfo: {
+      fontSize: '14px',
+      color: '#a0a0a0',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px'
     }
   };
 
+  // แสดง Error Screen
+  if (errorMessage) {
+    return (
+      <div style={styles.errorContainer}>
+        <div style={styles.errorBox}>
+          <FontAwesomeIcon icon={faExclamationTriangle} style={styles.errorIcon} />
+          <h2 style={styles.errorTitle}>ไม่สามารถเข้าถึงได้</h2>
+          <p style={styles.errorMessage}>{errorMessage}</p>
+          <div style={styles.redirectInfo}>
+            <FontAwesomeIcon icon={faSpinner} spin />
+            กำลังพาคุณกลับหน้าหลัก...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // หน้าโหลดเอาไว้ตรวจสอบสิทธิ์
   if (loading) {
     return (
       <div style={styles.loadingContainer}>
@@ -320,7 +401,7 @@ export default function AdminLayout({ children }) {
               {getUserRoleBadge()}
             </div>
             
-            {/* Logout Button */}
+            {/* ปุ่มออกจากระบบ */}
             <button onClick={handleLogout} style={styles.logoutButton}>
               <FontAwesomeIcon icon={faSignOutAlt} />
               ออกจากระบบ

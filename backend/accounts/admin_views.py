@@ -1,5 +1,3 @@
-# สร้างไฟล์ใหม่: backend/accounts/admin_views.py
-
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -15,7 +13,7 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-# 🔒 Permission Decorator สำหรับ Admin
+# Permission Decorator สำหรับ Admin
 def admin_required(view_func):
     """Decorator เพื่อตรวจสอบว่าเป็น admin หรือ superuser"""
     def wrapper(request, *args, **kwargs):
@@ -40,7 +38,7 @@ def superuser_required(view_func):
         return view_func(request, *args, **kwargs)
     return wrapper
 
-# 📊 API 1: Dashboard Statistics
+# Dashboard Statistics
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 @admin_required
@@ -110,7 +108,7 @@ def admin_dashboard_stats(request):
         }
     })
 
-# 👥 API 2: จัดการผู้ใช้
+# จัดการผู้ใช้
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 @admin_required
@@ -291,7 +289,6 @@ def admin_user_detail(request, user_id):
                     new_display = 'Active' if change['new_value'] else 'Inactive'
                     summary = f"{field_name}: {old_display} → {new_display}"
                 elif change['field'] == 'user_type':
-                    # แยก log ออกมาเป็น admin_promote_user
                     continue
                 else:
                     summary = f"{field_name}: {change['old_value']} → {change['new_value']}"
@@ -366,7 +363,7 @@ def admin_user_detail(request, user_id):
         
         return Response({'message': f'ลบผู้ใช้ {username} เรียบร้อยแล้ว'})
 
-# 📋 API 3: Activity Logs
+# Activity Logs
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 @admin_required

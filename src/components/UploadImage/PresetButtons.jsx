@@ -15,9 +15,8 @@ const PresetButtons = ({ setOptions, onPresetChange }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState('ปานกลาง');
 
-  // Preset configurations
+  // ตั้งค่า Preset
   const presets = {
-    // Quality Presets (Original)
     'ต่ำ': {
       name: 'ต่ำ',
       description: 'ไฟล์เล็ก ประมวลผลเร็ว',
@@ -70,7 +69,6 @@ const PresetButtons = ({ setOptions, onPresetChange }) => {
       }
     },
     
-    // Type-specific Presets (New)
     'โลโก้': {
       name: 'โลโก้/ไอคอน',
       description: 'เส้นคมชัด สีน้อย เหมาะสำหรับโลโก้',
@@ -247,7 +245,7 @@ const PresetButtons = ({ setOptions, onPresetChange }) => {
   );
 };
 
-// Styles
+
 const styles = {
   container: {
     marginBottom: '16px',

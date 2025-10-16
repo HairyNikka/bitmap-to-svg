@@ -1,4 +1,3 @@
-// src/admin/components/modals/EditUserModal/SecurityQuestionsTab.jsx - Improved version
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -170,7 +169,6 @@ export default function SecurityQuestionsTab({
     }
   };
 
-  // Styles with improved design
   const styles = {
     formGroup: {
       marginBottom: '24px'
@@ -602,7 +600,7 @@ export default function SecurityQuestionsTab({
         </button>
       </div>
 
-      {/* Confirmation Dialog */}
+      {/* กล่องยืนยันการบันทึก */}
       {showConfirmDialog && (
         <div style={styles.confirmDialog} onClick={() => setShowConfirmDialog(false)}>
           <div style={styles.confirmDialogContent} onClick={(e) => e.stopPropagation()}>

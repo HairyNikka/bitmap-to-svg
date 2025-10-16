@@ -92,9 +92,9 @@ def get_export_limits_info(request):
             return {
                 'user_type': user.user_type,
                 'is_unlimited': True,
-                'daily_limit': -1,  # ✅ ใช้ -1 แทน float('inf')
+                'daily_limit': -1,  
                 'used_today': 0,
-                'remaining': -1     # ✅ ใช้ -1 แทน float('inf')
+                'remaining': -1  
             }
         else:
             return {
@@ -145,6 +145,5 @@ def format_export_details(export_format, filename, guest_id=None, file_size=None
     if guest_id:
         details['guest_id'] = guest_id
         details['user_type'] = 'guest'
-    
-    # ✅ ต้อง return dict เสมอ (ไม่ใช่ string!)
+
     return details

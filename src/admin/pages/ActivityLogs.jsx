@@ -1,4 +1,3 @@
-// admin/pages/ActivityLogs.jsx
 import React from 'react';
 import AdminLayout from '../components/AdminLayout';
 import { useActivityLogs } from '../hooks/useActivityLogs';
@@ -177,7 +176,7 @@ export default function ActivityLogs() {
           </p>
         </div>
 
-        {/* Filter Panel */}
+        {/* เเถบฟิลเตอร์ */}
         <FilterPanel
           filters={filters}
           onFilterChange={handleFilterChange}
@@ -202,13 +201,13 @@ export default function ActivityLogs() {
           </div>
         )}
 
-        {/* Logs Table */}
+        {/* ตารางข้อมูล Log */}
         <LogsTable 
           logs={logs} 
           loading={loading}
         />
 
-        {/* Pagination */}
+        {/* การแบ่งหน้า */}
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

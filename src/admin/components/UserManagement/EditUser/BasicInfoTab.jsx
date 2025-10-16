@@ -185,7 +185,6 @@ export default function BasicInfoTab({
     }
   };
 
-  // Get user type display info
   const getUserTypeInfo = (userType) => {
     switch (userType) {
       case 'superuser':
@@ -213,7 +212,6 @@ export default function BasicInfoTab({
     }
   };
 
-  // Styles with improved design
   const styles = {
     formGroup: {
       marginBottom: '24px'

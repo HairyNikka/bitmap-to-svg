@@ -1,5 +1,4 @@
-// src/components/SvgPreview/SvgPreview.jsx
-import React, { useState, forwardRef, useImperativeHandle, useRef } from 'react';
+import React, { useState, forwardRef, useImperativeHandle, useRef, useEffect } from 'react';
 import ImageTracer from 'imagetracerjs';
 import { Canvg } from 'canvg';
 import ImageComparisonView from './ImageComparisonView';
@@ -7,14 +6,29 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 
-const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isParameterAdjusting, setCachedPng, setNaturalSize }, ref) => {
+const SvgPreview = forwardRef(({ 
+  imageSrc, 
+  options, 
+  setSvgData, 
+  filename, 
+  isParameterAdjusting, 
+  setCachedPng, 
+  setNaturalSize, 
+  setIsConverting  
+}, ref) => {
   const [svg, setSvg] = useState(null);
   const [cachedPng, setCachedPngLocal] = useState(null);
   const [converting, setConverting] = useState(false);
   const [progress, setProgress] = useState(0);
-
   const naturalSize = useRef({ width: 0, height: 0 });
   const uploadedFilename = filename;
+
+  //ส่งสถานะ converting ไปยัง home เพื่อล็อคปุ่ม
+  useEffect(() => {
+    if (setIsConverting) {
+      setIsConverting(converting);
+    }
+  }, [converting, setIsConverting]);
 
   const convertSvgToPng = async (svgString) => {
     const canvas = document.createElement('canvas');
@@ -31,7 +45,7 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       
       if (!token) {
-        console.log('User not logged in, skipping conversion logging');
+        console.log('ผู้ใช้ไม่ได้เข้าสู่ระบบ ไม่ต้องบันทึก log conversion');
         return true;
       }
 
@@ -42,10 +56,10 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      console.log('Conversion logged successfully:', response.data);
+      console.log('บันทึกการแปลงสำเร็จ:', response.data);
       return true;
     } catch (error) {
-      console.error('Failed to log conversion:', error);
+      console.error('บันทึกการแปลงไม่สำเร็จ:', error);
       
       if (error.response?.status === 429) {
         alert(`เกินจำนวนการแปลงที่อนุญาตต่อวัน\nเหลือ: ${error.response.data.remaining || 0} ครั้ง`);
@@ -57,8 +71,8 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
   };
 
   const handleGenerate = async () => {
-    if (converting) return;
-    setConverting(true);
+   
+    setConverting(true); 
     setProgress(0);
 
     try {
@@ -133,26 +147,28 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
           }
           
           setProgress(100);
+          
+          // รอ 500 ms ก่อนปลดล็อค
           setTimeout(() => {
             setProgress(0);
             setConverting(false);
           }, 500);
         } catch (error) {
-          console.error('Error during conversion:', error);
+          console.error('เกิดข้อผิดพลาดในการแปลงภาพ:', error);
           setProgress(0);
-          setConverting(false);
+          setConverting(false); 
         }
       };
 
       img.onerror = () => {
-        console.error('Failed to load image');
+        console.error('โหลดภาพไม่สำเร็จ');
         setProgress(0);
-        setConverting(false);
+        setConverting(false); 
       };
     } catch (error) {
-      console.error('Conversion failed:', error);
+      console.error('เกิดข้อผิดพลาดในการแปลงภาพ:', error);
       setProgress(0);
-      setConverting(false);
+      setConverting(false); 
     }
   };
 
@@ -169,7 +185,6 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
     reset: resetView
   }));
 
-  // Styles
   const styles = {
     container: {
       marginTop: '4px',
@@ -178,10 +193,10 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
     progressContainer: {
       width: '100%',
       marginTop: '16px',
-      marginLeft: '55px'  // เท่ากับ container
+      marginLeft: '55px' 
     },
     progressBar: {
-      width: '1010px',  // ✅ เปลี่ยนจาก 1030px เป็น 1010px (500 + 10 + 500)
+      width: '1010px', 
       height: '6px',
       backgroundColor: '#2a2a2a',
       borderRadius: '3px',
@@ -221,7 +236,7 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
       `}</style>
       
       <div style={styles.container}>
-        {/* Image Comparison View */}
+        {/* กล่องแสดงภาพเปรียบเทียบ */}
         <ImageComparisonView
           ref={imageComparisonRef}
           imageSrc={imageSrc}
@@ -230,7 +245,7 @@ const SvgPreview = forwardRef(({ imageSrc, options, setSvgData, filename, isPara
           isParameterAdjusting={isParameterAdjusting}
         />
         
-        {/* Progress Bar - แสดงใต้กล่อง preview */}
+        {/* หลอดโหลดแสดงใต้กล่อง preview */}
         {converting && (
           <div style={styles.progressContainer}>
             <div style={styles.progressBar}>

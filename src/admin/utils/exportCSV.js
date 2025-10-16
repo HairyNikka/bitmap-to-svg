@@ -1,4 +1,3 @@
-// src/admin/utils/exportCSV.js
 // CSV Export Utility สำหรับ Activity Logs และ User Management
 
 // Export Activity Logs เป็น CSV 
@@ -18,7 +17,6 @@ export const exportActivityLogsToCSV = async (filters, formatDetails) => {
         getUserTypeDisplay(log.user_type),
         log.action_display || log.action,
         log.formatted_timestamp || '',
-        // แก้ปัญหาบรรทัดใหม่ในช่องรายละเอียด
         cleanCsvCell(formatDetails ? formatDetails(log.details, log.action) : (log.details || ''))
       ])
     ];
@@ -174,8 +172,7 @@ export const exportUserActivityLogs = async (username, formatDetails) => {
   }
 };
 
-// ========================= Helper Functions =========================
-
+//  Helper Functions 
 // ทำความสะอาดข้อความสำหรับ CSV (แก้ปัญหาบรรทัดใหม่)
 const cleanCsvCell = (text) => {
   if (!text) return '';

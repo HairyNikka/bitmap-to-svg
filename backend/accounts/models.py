@@ -10,6 +10,12 @@ import uuid
 class User(AbstractUser):
     """Custom User Model with role-based access and export limits"""
     
+    email = models.EmailField(
+        unique=True,
+        verbose_name='Email Address',
+        help_text='Email address (must be unique)'
+    )
+
     USER_TYPES = [
         ('user', 'User'),
         ('admin', 'Admin'),
@@ -27,7 +33,7 @@ class User(AbstractUser):
     
     # เปลี่ยนจากการแปลงเป็นการส่งออก
     daily_export_limit = models.IntegerField(
-        default=10,  # เปลี่ยนจาก 50 เป็น 10 สำหรับ user ปกติ
+        default=10,
         validators=[MinValueValidator(1), MaxValueValidator(1000)],
         verbose_name='Daily Export Limit',
         help_text='จำนวนครั้งสูงสุดที่ส่งออกไฟล์ได้ต่อวัน'
@@ -53,7 +59,7 @@ class User(AbstractUser):
         verbose_name='Total Exports'
     )
     
-    # Security Questions สำหรับ Password Reset
+    # คำถามความปลอดภัย สำหรับ Password Reset
     security_question_1 = models.CharField(
         max_length=200,
         blank=True,
@@ -143,7 +149,7 @@ class User(AbstractUser):
         self.reset_daily_exports_if_new_day()
         
         if self.user_type in ['admin', 'superuser']:
-            return -1  # ✅ ใช้ -1 แทน float('inf') เพื่อให้ JSON serializable
+            return -1  # ใช้ -1 แทน float('inf') เพื่อให้ JSON serializable
             
         return max(0, self.daily_export_limit - self.daily_exports_used)
     
@@ -197,9 +203,9 @@ class User(AbstractUser):
     def set_security_questions(self, question_1, answer_1, question_2, answer_2):
         """ตั้งคำถามและคำตอบความปลอดภัย"""
         self.security_question_1 = question_1
-        self.security_answer_1 = answer_1.lower().strip()  # เก็บเป็นตัวพิมพ์เล็ก
+        self.security_answer_1 = answer_1.lower().strip()  
         self.security_question_2 = question_2
-        self.security_answer_2 = answer_2.lower().strip()  # เก็บเป็นตัวพิมพ์เล็ก
+        self.security_answer_2 = answer_2.lower().strip()  
         self.save()
     
     @classmethod
@@ -225,7 +231,7 @@ class GuestSession(models.Model):
     """บันทึกการใช้งานของ Guest (ไม่ได้ login)"""
     
     guest_id = models.CharField(
-        max_length=36,  # UUID length
+        max_length=36,  #UUID 
         verbose_name='Guest ID',
         help_text='UUID จาก LocalStorage'
     )
@@ -375,7 +381,7 @@ class UserActivityLog(models.Model):
     timestamp = models.DateTimeField(
         auto_now_add=True,
         verbose_name='Timestamp',
-        db_index=True  # เพิ่ม index สำหรับการค้นหา
+        db_index=True  
     )
     details = models.JSONField(
         null=True, 
@@ -391,7 +397,7 @@ class UserActivityLog(models.Model):
         indexes = [
             models.Index(fields=['user', '-timestamp']),
             models.Index(fields=['action', '-timestamp']),
-            models.Index(fields=['timestamp']),  # สำหรับการค้นหาตามช่วงเวลา
+            models.Index(fields=['timestamp']),  
         ]
     
     def __str__(self):

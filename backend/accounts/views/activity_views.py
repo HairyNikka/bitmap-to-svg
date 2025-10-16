@@ -79,7 +79,7 @@ def log_upload(request):
     """API สำหรับบันทึกการอัปโหลดภาพ (รองรับ guest)"""
     filename = request.data.get('filename')
     file_size = request.data.get('file_size')
-    file_type = request.data.get('file_type')  # image/jpeg, image/png, etc.
+    file_type = request.data.get('file_type') 
     
     # บันทึก log เฉพาะ user ที่ login (guest ไม่บันทึก upload log)
     if request.user.is_authenticated:
@@ -97,11 +97,10 @@ def log_upload(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def log_conversion(request):
-    """API สำหรับบันทึกการแปลงภาพ (รองรับ guest)"""
+    """API สำหรับบันทึกการแปลงภาพ"""
     filename = request.data.get('filename')
     file_size = request.data.get('file_size')
     
-    # ตอนนี้การแปลงไม่มีขีดจำกัด - เฉพาะการส่งออกเท่านั้น
     # บันทึก log เฉพาะ user ที่ login
     if request.user.is_authenticated:
         # เก็บ conversion count เดิมไว้ (สำหรับสถิติ)

@@ -1,4 +1,3 @@
-// admin/components/ActivityLogs/LogsTable.jsx
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -34,7 +33,6 @@ const LogsTable = ({ logs, loading }) => {
       borderBottom: '1px solid #4a4a4a',
       fontSize: '14px'
     },
-    // Column specific widths
     userColumn: {
       width: '18%'
     },
@@ -119,7 +117,7 @@ const LogsTable = ({ logs, loading }) => {
     }
   };
 
-  // Loading state
+  // สเตสต์การโหลดข้อมูล
   if (loading && logs.length === 0) {
     return (
       <>
@@ -140,7 +138,7 @@ const LogsTable = ({ logs, loading }) => {
     );
   }
 
-  // Empty state
+  // สเตสต์ที่ไม่มีข้อมูล
   if (!loading && logs.length === 0) {
     return (
       <div style={styles.container}>
@@ -217,7 +215,7 @@ const LogsTable = ({ logs, loading }) => {
                   animation: `fadeIn 0.3s ease-in-out ${index * 0.05}s both`
                 }}
               >
-                {/* User Column */}
+                {/* คอลัมน์ผู้ใช้ */}
                 <td style={styles.td}>
                   {(() => {
                     const roleInfo = getUserRoleInfo(log.user_type || 'user');
@@ -240,7 +238,7 @@ const LogsTable = ({ logs, loading }) => {
                   })()}
                 </td>
 
-                {/* Action Column */}
+                {/* คอลัมน์การกระทำ */}
                 <td style={styles.td}>
                   <div style={styles.actionCell}>
                     <span>
@@ -255,7 +253,7 @@ const LogsTable = ({ logs, loading }) => {
                   </div>
                 </td>
 
-                {/* Time Column */}
+                {/* คอลัมน์เวลา */}
                 <td style={styles.td}>
                   <div style={styles.timeCell}>
                     <div style={styles.timeAgo}>
@@ -267,7 +265,7 @@ const LogsTable = ({ logs, loading }) => {
                   </div>
                 </td>
 
-                {/* Details Column */}
+                {/* คอลัมน์รายละเอียด */}
                 <td style={styles.td}>
                   <div style={styles.detailsCell}>
                     {formatDetails(log.details, log.action)}

@@ -1,4 +1,3 @@
-// src/pages/UserProfile/useProfileForm.js
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
@@ -204,7 +203,7 @@ const useProfileForm = (userData, onUpdate) => {
         newErrors.securityAnswer2 = 'คำตอบต้องมีอย่างน้อย 2 ตัวอักษร';
       }
       
-      // Security questions should be different
+      // คำถามปลอดภัยต้องต่างกัน
       if (formData.securityQuestion1 && 
           formData.securityQuestion2 && 
           formData.securityQuestion1 === formData.securityQuestion2) {

@@ -1,4 +1,3 @@
-// src/pages/UserProfile/PasswordTab.jsx
 import React, { useState, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -268,7 +267,7 @@ export default function PasswordTab({
     }
   };
 
-  // Get input style
+  // Get input style 
   const getInputStyle = (isValid, hasContent) => {
     let style = { ...styles.input };
     if (hasContent) {
@@ -291,7 +290,7 @@ export default function PasswordTab({
         </p>
       </div>
 
-      {/* Current Password */}
+      {/* รหัสผ่านปัจจุบัน */}
       <div style={styles.section}>
         <h4 style={styles.sectionTitle}>รหัสผ่านปัจจุบัน</h4>
         
@@ -324,7 +323,7 @@ export default function PasswordTab({
         </div>
       </div>
 
-      {/* New Password */}
+      {/* รหัสผ่านใหม่ */}
       <div style={styles.section}>
         <h4 style={styles.sectionTitle}>รหัสผ่านใหม่</h4>
         
@@ -349,7 +348,7 @@ export default function PasswordTab({
             </button>
           </div>
 
-          {/* Password validation indicators */}
+          {/* ตรวจสอบความยาวรหัสผ่านใหม่ */}
           {formData.newPassword && (
             <div style={styles.validationList}>
               <div style={{
@@ -373,7 +372,7 @@ export default function PasswordTab({
           )}
         </div>
 
-        {/* Confirm Password */}
+        {/* ยืนยันรหัสผ่านใหม่ */}
         <div style={styles.formGroup}>
           <label style={styles.label}>ยืนยันรหัสผ่านใหม่:</label>
           <div style={styles.passwordField}>
@@ -396,7 +395,7 @@ export default function PasswordTab({
             </button>
           </div>
           
-          {/* Password match indicator */}
+          {/* ตรวจสอบความตรงกันของรหัสผ่านใหม่ */}
           {formData.confirmPassword && passwordValidation.isLengthValid && (
             <div style={{
               ...styles.matchIndicator,
@@ -418,7 +417,7 @@ export default function PasswordTab({
         </div>
       </div>
 
-      {/* Save Button */}
+      {/* ปุ่มบันทึก */}
       <div style={{ marginTop: '30px' }}>
         <button
           onClick={handleSaveClick}
@@ -454,7 +453,7 @@ export default function PasswordTab({
         </button>
       </div>
 
-      {/* Confirmation Dialog */}
+      {/* กล่องยืนยันการเปลี่ยนรหัสผ่าน */}
       {showConfirmDialog && (
         <div style={styles.confirmDialog} onClick={() => setShowConfirmDialog(false)}>
           <div style={styles.confirmDialogContent} onClick={(e) => e.stopPropagation()}>

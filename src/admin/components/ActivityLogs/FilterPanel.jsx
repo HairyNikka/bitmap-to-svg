@@ -1,4 +1,3 @@
-// admin/components/ActivityLogs/FilterPanel.jsx
 import React from 'react';
 import { actionOptions, dateOptions, userTypeOptions } from '../../utils/ActivityLogs';
 import { exportActivityLogsToCSV } from '../../utils/exportCSV';
@@ -24,7 +23,7 @@ const FilterPanel = ({
     customDateTo
   } = filters;
 
-  // Handle export CSV
+  // ปุ่มส่งออก CSV
   const handleExportCSV = async () => {
     onExportStateChange(true);
     
@@ -132,7 +131,7 @@ const FilterPanel = ({
     <div style={styles.container}>
       {/* Main Filters Grid */}
       <div style={styles.grid}>
-        {/* User Filter */}
+        {/* ฟิลเตอร์สำหรับค้นหาผู้ใช้ */}
         <div style={styles.filterGroup}>
           <label style={styles.label}>ค้นหาผู้ใช้</label>
           <input
@@ -144,7 +143,7 @@ const FilterPanel = ({
           />
         </div>
 
-        {/* User Type Filter */}
+        {/* ฟิลเตอร์สำหรับเลือกตำแหน่งผู้ใช้ */}
         <div style={styles.filterGroup}>
           <label style={styles.label}>ตำแหน่ง</label>
           <select
@@ -160,7 +159,7 @@ const FilterPanel = ({
           </select>
         </div>
 
-        {/* Action Filter */}
+        {/* ฟิลเตอร์สำหรับเลือกการกระทำ */}
         <div style={styles.filterGroup}>
           <label style={styles.label}>การกระทำ</label>
           <select
@@ -176,7 +175,7 @@ const FilterPanel = ({
           </select>
         </div>
 
-        {/* Date Filter */}
+        {/* ฟิลเตอร์สำหรับเลือกช่วงเวลา */}
         <div style={styles.filterGroup}>
           <label style={styles.label}>ช่วงเวลา</label>
           <select
@@ -193,7 +192,7 @@ const FilterPanel = ({
         </div>
       </div>
 
-      {/* Custom Date Range */}
+      {/* กำหนดวันที่เอง */}
       {dateFilter === 'custom' && (
         <div style={styles.customDateContainer}>
           <div style={styles.filterGroup}>
@@ -217,7 +216,7 @@ const FilterPanel = ({
         </div>
       )}
 
-      {/* Action Buttons */}
+      {/* ปุ่มล้างตัวกรอง และส่งออก CSV*/}
       <div style={styles.buttonContainer}>
         <button
           onClick={onClearFilters}
@@ -259,7 +258,7 @@ const FilterPanel = ({
           )}
         </button>
 
-        {/* Total Count Display */}
+        {/* จำนวนรายการที่แสดงอยู่ */}
         {totalLogs > 0 && (
           <div style={{
             color: '#a0a0a0',

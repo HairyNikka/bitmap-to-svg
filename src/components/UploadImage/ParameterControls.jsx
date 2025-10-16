@@ -29,7 +29,7 @@ const ParameterControls = ({ options, setOptions, resetTrigger, onParameterAdjus
   const [isAdjusting, setIsAdjusting] = useState(false);
   const adjustingTimeout = useRef(null);
 
-  // ✅ เพิ่ม state สำหรับ collapsible groups
+
   const [collapsedGroups, setCollapsedGroups] = useState({
     quality: false,    // เปิดไว้เป็นค่าเริ่มต้น (ใช้บ่อยสุด)
     colors: true,      // ปิดไว้
@@ -44,7 +44,7 @@ const ParameterControls = ({ options, setOptions, resetTrigger, onParameterAdjus
     }
   }, [localOptions, setOptions]);
 
-  // Reset when resetTrigger changes  
+  // รีเซ็ตเมื่อ resetTrigger ถูกเรียก
   useEffect(() => {
     if (options && Object.keys(options).length > 0) {
       isUpdatingFromParent.current = true;
@@ -75,7 +75,7 @@ const ParameterControls = ({ options, setOptions, resetTrigger, onParameterAdjus
     }, 300);
   };
 
-  // ✅ ฟังก์ชันสำหรับ toggle group
+  // ฟังก์ชันสำหรับ toggle group
   const toggleGroup = (groupKey) => {
     setCollapsedGroups(prev => ({
       ...prev,
@@ -83,7 +83,7 @@ const ParameterControls = ({ options, setOptions, resetTrigger, onParameterAdjus
     }));
   };
 
-  // Parameter configuration with grouping
+  // กลุ่มการตั้งค่าพารามิเตอร์
   const parameterGroups = {
     quality: {
       name: "คุณภาพและรายละเอียด",
@@ -92,21 +92,21 @@ const ParameterControls = ({ options, setOptions, resetTrigger, onParameterAdjus
       params: {
         pathomit: {
           label: "ละเส้นเล็ก",
-          description: "ค่าสูง = เส้นน้อยลง ไฟล์เล็กลง",
+          description: "ค่าสูง = เส้นน้อยลง ไฟล์เล็กลง (pathomit)",
           min: 0,
           max: 20,
           step: 1
         },
         ltres: {
           label: "ความละเอียดเส้น",
-          description: "ค่าสูง = เส้นเรียบขึ้น แต่ใหญ่ขึ้น",
+          description: "ค่าสูง = เส้นเรียบขึ้น แต่ใหญ่ขึ้น (ltres)",
           min: 0.1,
           max: 5,
           step: 0.1
         },
         qtres: {
           label: "ความโค้งของเส้น",
-          description: "ค่าสูง = เส้นโค้งนุ่มนวลขึ้น",
+          description: "ค่าสูง = เส้นโค้งนุ่มนวลขึ้น (qtres)",
           min: 0.1,
           max: 5,
           step: 0.1
@@ -120,14 +120,14 @@ const ParameterControls = ({ options, setOptions, resetTrigger, onParameterAdjus
       params: {
         numberofcolors: {
           label: "จำนวนสี",
-          description: "จำนวนสีสูงสุดที่ใช้ในผลลัพธ์",
+          description: "จำนวนสีสูงสุดที่ใช้ในผลลัพธ์ (numberofcolors)",
           min: 2,
           max: 32,
           step: 1
         },
         mincolorratio: {
           label: "กรองสีที่ใช้น้อย",
-          description: "ค่าสูง = กรองสีที่ใช้พื้นที่น้อยออก",
+          description: "ค่าสูง = กรองสีที่ใช้พื้นที่น้อยออก (mincolorratio)",
           min: 0,
           max: 0.2,
           step: 0.01
@@ -141,14 +141,14 @@ const ParameterControls = ({ options, setOptions, resetTrigger, onParameterAdjus
       params: {
         strokewidth: {
           label: "ความหนาของเส้น",
-          description: "ความหนาของเส้นขอบ",
+          description: "ความหนาของเส้นขอบ (strokewidth)",
           min: 0,
           max: 5,
           step: 0.5
         },
         blur: {
           label: "เบลอก่อนแปลง",
-          description: "เบลอภาพก่อนแปลงเป็นเวกเตอร์",
+          description: "เบลอภาพก่อนแปลงเป็นเวกเตอร์ (blur)",
           min: 0,
           max: 5,
           step: 0.1
@@ -162,12 +162,12 @@ const ParameterControls = ({ options, setOptions, resetTrigger, onParameterAdjus
       params: {
         linefilter: {
           label: "กรองเส้นซ้ำซ้อน",
-          description: "ลดเส้นที่ซ้ำซ้อนกันออก",
+          description: "ลดเส้นที่ซ้ำซ้อนกันออก (linefilter)",
           type: "checkbox"
         },
         rightangleenhance: {
           label: "บังคับมุมฉาก",
-          description: "แปลงเส้นโค้งเป็นมุมฉาก",
+          description: "แปลงเส้นโค้งเป็นมุมฉาก (rightangleenhance)",
           type: "checkbox"
         }
       }
@@ -238,7 +238,7 @@ const ParameterControls = ({ options, setOptions, resetTrigger, onParameterAdjus
     
     return (
       <div key={groupKey} style={styles.parameterGroup}>
-        {/* ✅ Collapsible Header */}
+        {/* Collapsible Header */}
         <div 
           style={styles.groupHeader}
           onClick={() => toggleGroup(groupKey)}
@@ -251,14 +251,14 @@ const ParameterControls = ({ options, setOptions, resetTrigger, onParameterAdjus
             <h4 style={styles.groupTitle}>{group.name}</h4>
           </div>
           
-          {/* ✅ Chevron Icon */}
+          {/* Chevron Icon */}
           <FontAwesomeIcon 
             icon={isCollapsed ? faChevronRight : faChevronDown}
             style={styles.chevronIcon}
           />
         </div>
         
-        {/* ✅ Collapsible Content */}
+        {/* Collapsible Content */}
         <div style={{
           ...styles.groupContent,
           maxHeight: isCollapsed ? '0px' : '1000px',
@@ -291,7 +291,6 @@ const ParameterControls = ({ options, setOptions, resetTrigger, onParameterAdjus
   );
 };
 
-// ✅ Updated Styles
 const styles = {
   container: {
     width: '100%'

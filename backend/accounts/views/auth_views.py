@@ -1,11 +1,3 @@
-# backend/accounts/views/auth_views.py
-"""
-Authentication & Basic User Operations
-- User Registration
-- Login/Logout (Session & JWT)
-- User Information
-"""
-
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -14,7 +6,6 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView as BaseTokenObtainPairView
 from django.contrib.auth import authenticate, login, logout, get_user_model
 
-# Import จาก app เดียวกัน
 from ..serializers import RegisterSerializer
 from ..models import UserActivityLog
 from ..utils import get_export_limits_info

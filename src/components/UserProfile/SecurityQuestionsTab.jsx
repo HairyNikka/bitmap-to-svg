@@ -1,4 +1,3 @@
-// src/pages/UserProfile/SecurityQuestionsTab.jsx
 import React, { useState, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -26,7 +25,7 @@ export default function SecurityQuestionsTab({
   const [showAnswer2, setShowAnswer2] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
-  // Memoized validation
+  // ดึงคำถามจากฟอร์ม
   const validation = useMemo(() => {
     const { securityQuestion1, securityAnswer1, securityQuestion2, securityAnswer2 } = formData;
     
@@ -313,7 +312,7 @@ export default function SecurityQuestionsTab({
 
   return (
     <div style={styles.container}>
-      {/* Info Box */}
+      {/* กล่องข้อมูล */}
       <div style={styles.infoBox}>
         <div style={styles.infoText}>
           <FontAwesomeIcon icon={faInfoCircle} style={{ marginTop: '2px', flexShrink: 0 }} />
@@ -486,7 +485,7 @@ export default function SecurityQuestionsTab({
         </div>
       </div>
 
-      {/* Save Button */}
+      {/* ปุ่มบันทึก */}
       <div style={{ marginTop: '30px' }}>
         <button
           onClick={handleSaveClick}
@@ -522,7 +521,7 @@ export default function SecurityQuestionsTab({
         </button>
       </div>
 
-      {/* Confirmation Dialog */}
+      {/* กล่องยืนยันการบันทึก */}
       {showConfirmDialog && (
         <div style={styles.confirmDialog} onClick={() => setShowConfirmDialog(false)}>
           <div style={styles.confirmDialogContent} onClick={(e) => e.stopPropagation()}>

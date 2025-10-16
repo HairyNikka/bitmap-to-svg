@@ -6,101 +6,17 @@ import Login from './pages/Login';
 import Home from './components/Home';
 import Navbar from './components/Navbar';
 
-// 🔐 เพิ่ม Security Reset Components
-import ForgotPassword from './pages/PasswordReset/ForgotPassword';
-import SecurityQuestions from './pages/PasswordReset/SecurityQuestions';
-import ResetPassword from './pages/PasswordReset/ResetPassword';
 import PasswordResetFlow from './pages/PasswordReset/PasswordResetFlow'; 
 
-// 🔧 เพิ่ม Admin Components
 import AdminDashboard from './admin/pages/AdminDashboard';
 import UserManagement from './admin/pages/UserManagement';
 import ActivityLogs from './admin/pages/ActivityLogs';
 
-// 🔒 Protected Route Component สำหรับ Admin
-function ProtectedAdminRoute({ children }) {
-  const [isAuthorized, setIsAuthorized] = useState(null);
 
-  useEffect(() => {
-    const userData = localStorage.getItem('userData');
-    const token = localStorage.getItem('accessToken');
-
-    if (!userData || !token) {
-      setIsAuthorized(false);
-      return;
-    }
-
-    try {
-      const user = JSON.parse(userData);
-      // ตรวจสอบว่าเป็น admin หรือ superuser
-      if (user.user_type === 'admin' || user.user_type === 'superuser') {
-        setIsAuthorized(true);
-      } else {
-        setIsAuthorized(false);
-      }
-    } catch (error) {
-      setIsAuthorized(false);
-    }
-  }, []);
-
-  // กำลังตรวจสอบสิทธิ์
-  if (isAuthorized === null) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        backgroundColor: '#1a1a1a',
-        color: '#ffffff'
-      }}>
-        <div>กำลังตรวจสอบสิทธิ์...</div>
-      </div>
-    );
-  }
-
-  // ไม่มีสิทธิ์
-  if (!isAuthorized) {
-    return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        backgroundColor: '#1a1a1a',
-        color: '#ffffff',
-        textAlign: 'center'
-      }}>
-        <h2 style={{ color: '#ff6b6b', marginBottom: '16px' }}>
-          🚫 ไม่มีสิทธิ์เข้าถึง
-        </h2>
-        <p style={{ color: '#a0a0a0', marginBottom: '24px' }}>
-          คุณต้องเป็น Admin หรือ Superuser เท่านั้น
-        </p>
-        <a 
-          href="/" 
-          style={{
-            backgroundColor: '#007bff',
-            color: '#ffffff',
-            padding: '12px 24px',
-            borderRadius: '6px',
-            textDecoration: 'none'
-          }}
-        >
-          กลับหน้าหลัก
-        </a>
-      </div>
-    );
-  }
-
-  return children;
-}
 
 function AppRoutes({ isAuthenticated, setIsAuthenticated, username, setUsername, handleLogout }) {
   const location = useLocation();
   
-  // 🔧 เพิ่ม security reset routes ใน hideNavbar
   const hideNavbar = [
     '/login', 
     '/register', 
@@ -111,7 +27,6 @@ function AppRoutes({ isAuthenticated, setIsAuthenticated, username, setUsername,
     '/admin/logs'
   ].includes(location.pathname);
 
-  // 🎨 Reset body styles สำหรับหน้าที่ไม่ต้องการ flex centering
   React.useEffect(() => {
     const needsFlexReset = [
       '/login', 
@@ -135,7 +50,7 @@ function AppRoutes({ isAuthenticated, setIsAuthenticated, username, setUsername,
 
     // Cleanup function
     return () => {
-      // คืนค่าเดิมเมื่อ component unmount (optional)
+      // คืนค่าเดิมเมื่อ component unmount
     };
   }, [location.pathname]);
 
@@ -150,33 +65,19 @@ function AppRoutes({ isAuthenticated, setIsAuthenticated, username, setUsername,
       )}
 
       <Routes>
-        {/* Routes เดิม */}
+        {/* Route หน้าหลัก */}
         <Route path="/" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} setUsername={setUsername} />} />
         
-        {/* 🔐 Security Reset Routes */}
+        {/* Route หน้าลืมรหัสผ่าน */}
         <Route path="/forgot-password" element={<PasswordResetFlow />} />
         <Route path="/reset-password" element={<PasswordResetFlow />} />
         
-        {/* 🔧 Admin Routes */}
-        <Route path="/admin" element={
-          <ProtectedAdminRoute>
-            <AdminDashboard />
-          </ProtectedAdminRoute>
-        } />
-
-        <Route path="/admin/users" element={
-          <ProtectedAdminRoute>
-            <UserManagement />
-          </ProtectedAdminRoute>
-        } />
-
-        <Route path="/admin/logs" element={
-          <ProtectedAdminRoute>
-            <ActivityLogs />
-          </ProtectedAdminRoute>
-        } />
+        {/* Route สำหรับ Admin*/}
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/users" element={<UserManagement />} />
+        <Route path="/admin/logs" element={<ActivityLogs />} />
       </Routes>
     </>
   );
@@ -187,7 +88,7 @@ export default function App() {
   const [username, setUsername] = useState('');
 
   useEffect(() => {
-    // 🔧 ปรับให้เช็คทั้ง token เก่าและใหม่
+
     const oldToken = localStorage.getItem('token');
     const newToken = localStorage.getItem('accessToken');
     const storedUser = localStorage.getItem('username');
@@ -214,7 +115,7 @@ export default function App() {
     setIsAuthenticated(false);
     setUsername('');
     
-    // 🔧 ลบทั้ง token เก่าและใหม่
+    // ลบทั้ง token เก่าและใหม่
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     localStorage.removeItem('accessToken');

@@ -13,8 +13,7 @@ export default function Home() {
   const [uploadedFilename, setUploadedFilename] = useState('');
   const [hasUploadedImage, setHasUploadedImage] = useState(false);
   const [isParameterAdjusting, setIsParameterAdjusting] = useState(false);
-  
-  // ✅ เพิ่ม state สำหรับ export modal และ cached PNG
+  const [isConverting, setIsConverting] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [cachedPng, setCachedPng] = useState(null);
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
@@ -43,10 +42,17 @@ export default function Home() {
   };
 
   const handleConvertImage = () => {
-    if (!hasUploadedImage) {
-      alert('⚠️ กรุณาอัปโหลดรูปภาพก่อนการแปลง!');
+    // ป้องกันการกดซ้ำขณะกำลังแปลง
+    if (isConverting) {
+      console.warn('กำลังแปลงอยู่ กรุณารอสักครู่');
       return;
     }
+    
+    if (!hasUploadedImage) {
+      alert('กรุณาอัปโหลดรูปภาพก่อนการแปลง!');
+      return;
+    }
+    
     svgRef.current?.generate();
   };
 
@@ -60,7 +66,7 @@ export default function Home() {
     setResetTrigger(prev => prev + 1);
   };
 
-  // ✅ เช็คว่ามี SVG ผลลัพธ์หรือยัง
+  // เช็คว่ามี SVG ผลลัพธ์หรือยัง
   const hasSvgResult = svgData && svgData.includes('<path');
 
   return (
@@ -68,7 +74,7 @@ export default function Home() {
       <div style={{ paddingTop: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '100%', width: '100%' }}>
         <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', padding: '0 0 0 20px', flexWrap: 'wrap' }}>
 
-          {/* Left side: Image Preview */}
+          {/* กล่องซ้าย Preview แสดงผลภาพ */}
           <div style={{ flex: 2, minWidth: '300px' }}>
             <SvgPreview
               ref={svgRef}
@@ -79,88 +85,97 @@ export default function Home() {
               isParameterAdjusting={isParameterAdjusting}
               setCachedPng={setCachedPng}
               setNaturalSize={setNaturalSize}
+              setIsConverting={setIsConverting} 
             />
           </div>
 
-          {/* Right side: Control Panel */}
+          {/* กล่องฟังก์ชันการแปลง */}
           <div style={styles.controlPanel}>
-            
-            {/* Fixed Controls Section */}
             <div style={styles.fixedControls}>
-              {/* Upload Section */}
+              {/* อัปโหลดรูปภาพ */}
               <UploadImage
                 setImageSrc={handleImageUpdate}
                 setFilename={setUploadedFilename}
                 imageSrc={imageSrc}
               />
 
-              {/* Preset Section */}
+              {/* พรีเซ็ตค่าที่ตั้งไว้ */}
               <PresetButtons
                 setOptions={setOptions}
                 onPresetChange={handlePresetChange}
               />
 
-              {/* Action Buttons - Layout B */}
+              {/* ปุ่มกดต่าง ๆ */}
               <div style={styles.actionButtons}>
                 {/* แถวที่ 1: ปุ่มแปลง + รีเซ็ต 2 ปุ่ม */}
                 <div style={styles.buttonRow}>
                   <button
                     onClick={handleConvertImage}
-                    disabled={!hasUploadedImage}
-                    className={hasUploadedImage ? 'convert-button' : ''}
+                    disabled={!hasUploadedImage || isConverting} 
+                    className={hasUploadedImage && !isConverting ? 'convert-button' : ''}
                     style={{
                       ...styles.convertButton,
                       flex: 2,
-                      opacity: hasUploadedImage ? 1 : 0.5,
-                      cursor: hasUploadedImage ? 'pointer' : 'not-allowed',
-                      backgroundColor: hasUploadedImage ? '#1a1a1a' : '#3a3a3a',
-                      color: hasUploadedImage ? 'white' : '#888',
-                      border: hasUploadedImage ? '1px solid transparent' : '1px solid #555',
-                      fontWeight: hasUploadedImage ? '600' : 'normal'
+                      opacity: (hasUploadedImage && !isConverting) ? 1 : 0.5,
+                      cursor: (hasUploadedImage && !isConverting) ? 'pointer' : 'not-allowed',
+                      backgroundColor: (hasUploadedImage && !isConverting) ? '#1a1a1a' : '#3a3a3a',
+                      color: (hasUploadedImage && !isConverting) ? 'white' : '#888',
+                      border: (hasUploadedImage && !isConverting) ? '1px solid transparent' : '1px solid #555',
+                      fontWeight: (hasUploadedImage && !isConverting) ? '600' : 'normal'
                     }}
                   >
                     <FontAwesomeIcon icon={faWrench} size="lg" />
-                    แปลงภาพ
+                    {isConverting ? 'กำลังแปลง...' : 'แปลงภาพ'}
                   </button>
 
                   <button
                     onClick={resetToMediumPreset}
+                    disabled={isConverting} 
                     title="รีเซ็ตพรีเซ็ต"
-                    style={styles.resetButton}
+                    style={{
+                      ...styles.resetButton,
+                      opacity: isConverting ? 0.5 : 1,
+                      cursor: isConverting ? 'not-allowed' : 'pointer'
+                    }}
                   >
                     <FontAwesomeIcon icon={faArrowsRotate} size="lg" />
                   </button>
 
                   <button
                     onClick={() => svgRef.current?.reset()}
+                    disabled={isConverting} 
                     title="รีเซ็ตมุมมอง"
-                    style={styles.resetButton}
+                    style={{
+                      ...styles.resetButton,
+                      opacity: isConverting ? 0.5 : 1,
+                      cursor: isConverting ? 'not-allowed' : 'pointer'
+                    }}
                   >
                     <FontAwesomeIcon icon={faSearchPlus} size="lg" />
                   </button>
                 </div>
 
-                {/* แถวที่ 2: ปุ่มดาวน์โหลด (เต็มความกว้าง) */}
+                {/* แถวที่ 2: ปุ่มดาวน์โหลด */}
                 <button
                   onClick={() => setShowExport(true)}
-                  disabled={!hasSvgResult}
-                  className={hasSvgResult ? 'download-button' : ''}
+                  disabled={!hasSvgResult || isConverting} 
+                  className={hasSvgResult && !isConverting ? 'download-button' : ''}
                   style={{
                     ...styles.downloadButton,
-                    opacity: hasSvgResult ? 1 : 0.5,
-                    cursor: hasSvgResult ? 'pointer' : 'not-allowed',
-                    backgroundColor: hasSvgResult ? '#10b981' : '#3a3a3a',
-                    color: hasSvgResult ? 'white' : '#888',
-                    border: hasSvgResult ? '1px solid transparent' : '1px solid #555'
+                    opacity: (hasSvgResult && !isConverting) ? 1 : 0.5,
+                    cursor: (hasSvgResult && !isConverting) ? 'pointer' : 'not-allowed',
+                    backgroundColor: (hasSvgResult && !isConverting) ? '#10b981' : '#3a3a3a',
+                    color: (hasSvgResult && !isConverting) ? 'white' : '#888',
+                    border: (hasSvgResult && !isConverting) ? '1px solid transparent' : '1px solid #555'
                   }}
                 >
                   <FontAwesomeIcon icon={faDownload} size="lg" />
-                  ดาวน์โหลด
+                  {isConverting ? 'รอสักครู่...' : 'ดาวน์โหลด'}
                 </button>
               </div>
             </div>
 
-            {/* Scrollable Parameters Section */}
+            {/* กล่องปรับค่าพารามิเตอร์ */}
             <div style={styles.parametersBox}>
               <ParameterControls
                 options={options}
@@ -170,7 +185,6 @@ export default function Home() {
               />
             </div>
 
-            {/* CSS for hover effects */}
             <style>{`
               .convert-button {
                 transition: all 0.2s ease;
@@ -194,7 +208,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Export Modal */}
+      {/* โมเดลสำหรับส่งออก */}
       {showExport && (
         <ExportPreview
           svg={svgData}
@@ -209,7 +223,6 @@ export default function Home() {
   );
 }
 
-// Styles
 const styles = {
   controlPanel: {
     width: '350px',

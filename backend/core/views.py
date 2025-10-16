@@ -2,7 +2,6 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import cairosvg
 
-# ฟังก์ชันหลักที่แก้ไขใหม่
 @csrf_exempt
 def svg_to_pdf(request):
     if request.method == 'POST':

@@ -1,11 +1,8 @@
-# backend/accounts/serializers.py - เพิ่ม admin serializers
-
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.validators import UniqueValidator
 
-# ใช้ get_user_model() แทน direct import
 User = get_user_model()
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -22,7 +19,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     )
     confirm_password = serializers.CharField(write_only=True, required=True)
 
-    # เพิ่ม Security Questions Fields
+    # Security Questions Fields
     security_question_1 = serializers.CharField(required=False, allow_blank=True)
     security_answer_1 = serializers.CharField(required=False, allow_blank=True)
     security_question_2 = serializers.CharField(required=False, allow_blank=True)

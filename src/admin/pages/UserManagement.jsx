@@ -1,7 +1,7 @@
 // admin/pages/UserManagement.jsx - Refactored version
 import React from 'react';
 import AdminLayout from '../components/AdminLayout';
-import EditUserModal from '../components/EditUserModal'; // ใช้ modal เดิมต่อ
+import EditUserModal from '../components/UserManagement/EditUser/EditUserModal'; 
 import { useUserManagement } from '../hooks/useUserManagement';
 import UserFilters from '../components/UserManagement/UserFilters';
 import UserTable from '../components/UserManagement/UserTable';
@@ -272,7 +272,7 @@ export default function UserManagement() {
           hasPreviousPage={hasPreviousPage}
         />
 
-        {/* Edit User Modal - ใช้ modal เดิม */}
+        {/* Edit User Modal */}
         {editModal.show && (
           <EditUserModal
             user={editModal.user}
@@ -290,7 +290,7 @@ export default function UserManagement() {
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                zIndex: 2000  // เพิ่ม z-index สูง
+                zIndex: 2000
               }
             }}
           />
